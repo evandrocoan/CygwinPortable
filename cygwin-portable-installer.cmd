@@ -69,24 +69,24 @@ set CON_EMU_OPTIONS=-Title cygwin-portable ^
 set CYGWIN_PATH=%%SystemRoot%%\system32;%%SystemRoot%%
 
 :: set Mintty options, see https://cdn.rawgit.com/mintty/mintty/master/docs/mintty.1.html#CONFIGURATION
-set MINTTY_OPTIONS=--Title cygwin-portable ^
-  -o Columns=160 ^
-  -o Rows=50 ^
-  -o BellType=0 ^
-  -o ClicksPlaceCursor=yes ^
-  -o CursorBlinks=yes ^
-  -o CursorColour=96,96,255 ^
-  -o CursorType=Block ^
-  -o CopyOnSelect=yes ^
-  -o RightClickAction=Paste ^
-  -o Font="Courier New" ^
-  -o FontHeight=10 ^
-  -o FontSmoothing=None ^
-  -o ScrollbackLines=10000 ^
-  -o Transparency=off ^
-  -o Term=xterm-256color ^
-  -o Charset=UTF-8 ^
-  -o Locale=C
+rem set MINTTY_OPTIONS=--Title cygwin-portable ^
+rem   -o Columns=160 ^
+rem   -o Rows=50 ^
+rem   -o BellType=0 ^
+rem   -o ClicksPlaceCursor=yes ^
+rem   -o CursorBlinks=yes ^
+rem   -o CursorColour=96,96,255 ^
+rem   -o CursorType=Block ^
+rem   -o CopyOnSelect=yes ^
+rem   -o RightClickAction=Paste ^
+rem   -o Font="Courier New" ^
+rem   -o FontHeight=10 ^
+rem   -o FontSmoothing=None ^
+rem   -o ScrollbackLines=10000 ^
+rem   -o Transparency=off ^
+rem   -o Term=xterm-256color ^
+rem   -o Charset=UTF-8 ^
+rem   -o Locale=C
 
 :: ============================================================================================================
 :: CONFIG CUSTOMIZATION END
