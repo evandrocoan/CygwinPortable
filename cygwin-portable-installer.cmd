@@ -38,7 +38,7 @@ set PROXY_HOST=
 set PROXY_PORT=8080
 
 :: change the URL to the closest mirror https://cygwin.com/mirrors.html
-set CYGWIN_MIRROR=http://linux.rz.ruhr-uni-bochum.de/download/cygwin
+set CYGWIN_MIRROR=http://linorg.usp.br/cygwin/
 
 :: choose a user name under Cygwin
 set CYGWIN_USERNAME=root
@@ -47,13 +47,13 @@ set CYGWIN_USERNAME=root
 set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,git-svn,gnupg,inetutils,mc,nc,openssh,openssl,perl,python,pv,ssh-pageant,subversion,unzip,vim,wget,zip,zstd
 
 :: if set to 'yes' the local package cache created by cygwin setup will be deleted after installation/update
-set DELETE_CYGWIN_PACKAGE_CACHE=yes
+set DELETE_CYGWIN_PACKAGE_CACHE=no
 
 :: if set to 'yes' the apt-cyg command line package manager (https://github.com/transcode-open/apt-cyg) will be installed automatically
 set INSTALL_APT_CYG=yes
 
 :: if set to 'yes' the bash-funk adaptive Bash prompt (https://github.com/vegardit/bash-funk) will be installed automatically
-set INSTALL_BASH_FUNK=yes
+set INSTALL_BASH_FUNK=no
 
 :: if set to 'yes' testssl.sh (https://testssl.sh/) will be installed automatically
 set INSTALL_TESTSSL_SH=yes
@@ -61,7 +61,7 @@ set INSTALL_TESTSSL_SH=yes
 set TESTSSL_GIT_BRANCH=2.9.5
 
 :: use ConEmu based tabbed terminal instead of Mintty based single window terminal, see https://conemu.github.io/
-set INSTALL_CONEMU=yes
+set INSTALL_CONEMU=no
 set CON_EMU_OPTIONS=-Title cygwin-portable ^
  -QuitOnClose
 
