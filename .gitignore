@@ -2,3 +2,5 @@
 /_gsdata_
 /cygwin
 *.sublime-workspace
+/cygwin-portable-updater.cmd
+/cygwin-portable.cmd
