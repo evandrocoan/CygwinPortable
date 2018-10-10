@@ -10,7 +10,7 @@
 
 cygwin-portable-installer is a self-containing Windows batch file to perform an unattended installation of a portable [Cygwin](http://cygwin.org) environment.
 
-The installer has been implemented as a Batch script and not PowerShell script because in some corporate environments execution of PowerShell scripts is 
+The installer has been implemented as a Batch script and not PowerShell script because in some corporate environments execution of PowerShell scripts is
 disabled for non-administrative users via group policies.
 
 ![screenshot](screenshot.png)
@@ -27,7 +27,7 @@ disabled for non-administrative users via group policies.
 ## <a name="install"></a>Installation
 
 1. Create a local empty directory where Cygwin shall be installed, e.g. `C:\apps\cygwin-portable`
-2. Download the [cygwin-portable-installer.cmd](https://github.com/vegardit/cygwin-portable-installer/blob/master/cygwin-portable-installer.cmd) file into that directory.
+2. Download the [cygwin-portable-installer.cmd](cygwin-portable-installer.cmd) file into that directory.
 3. (Optional) Open the file in an text editor and adjust the configuration variables to e.g. set an HTTP Proxy, change the set of pre-installed Cygwin packages, select the terminal (ConEmu or Mintty).
 4. Execute the `cygwin-portable-installer.cmd`. This will automatically:
     1. download the 32 or 64bit Cygwin setup.exe depending on your OS,
@@ -41,4 +41,6 @@ disabled for non-administrative users via group policies.
 
 ## <a name="license"></a>License
 
-All files are released under the [Apache License 2.0](https://github.com/vegardit/bash-funk/blob/master/LICENSE.txt).
+All files are released under the [Apache License 2.0](LICENSE.txt).
+
+
