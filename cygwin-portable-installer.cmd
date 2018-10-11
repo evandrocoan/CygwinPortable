@@ -194,33 +194,33 @@ if "%DELETE_CYGWIN_PACKAGE_CACHE%" == "yes" (
 set Updater_cmd=%INSTALL_ROOT%cygwin-portable-updater.cmd
 echo Creating updater [%Updater_cmd%]...
 (
-	echo @echo off
+    echo @echo off
     echo set CYGWIN_ROOT=%%~dp0cygwin
-	echo echo.
-	echo.
-	echo echo ###########################################################
-	echo echo # Updating [Cygwin Portable]...
-	echo echo ###########################################################
-	echo echo.
-	echo "%%CYGWIN_ROOT%%\%CYGWIN_SETUP%" --no-admin ^^
-	echo --site %CYGWIN_MIRROR% %CYGWIN_PROXY% ^^
-	echo --root "%%CYGWIN_ROOT%%" ^^
-	echo --local-package-dir "%%CYGWIN_ROOT%%\.pkg-cache" ^^
-	echo --no-shortcuts ^^
-	echo --no-desktop ^^
-	echo --delete-orphans ^^
-	echo --upgrade-also ^^
-	echo --no-replaceonreboot ^^
-	echo --quiet-mode ^|^| goto :fail
+    echo echo.
+    echo.
+    echo echo ###########################################################
+    echo echo # Updating [Cygwin Portable]...
+    echo echo ###########################################################
+    echo echo.
+    echo "%%CYGWIN_ROOT%%\%CYGWIN_SETUP%" --no-admin ^^
+    echo --site %CYGWIN_MIRROR% %CYGWIN_PROXY% ^^
+    echo --root "%%CYGWIN_ROOT%%" ^^
+    echo --local-package-dir "%%CYGWIN_ROOT%%\.pkg-cache" ^^
+    echo --no-shortcuts ^^
+    echo --no-desktop ^^
+    echo --delete-orphans ^^
+    echo --upgrade-also ^^
+    echo --no-replaceonreboot ^^
+    echo --quiet-mode ^|^| goto :fail
     if "%DELETE_CYGWIN_PACKAGE_CACHE%" == "yes" (
         echo rd /s /q "%%CYGWIN_ROOT%%\.pkg-cache"
     )
-	echo echo.
-	echo echo ###########################################################
+    echo echo.
+    echo echo ###########################################################
     echo echo # Updating [Cygwin Portable] succeeded.
     echo echo ###########################################################
-	echo timeout /T 60
-	echo exit /0
+    echo timeout /T 60
+    echo exit /0
     echo echo.
     echo :fail
     echo echo ###########################################################
@@ -333,7 +333,7 @@ echo Creating [%Init_sh%]...
         echo     cd /opt/testssl ^&^& \
         echo     wget -qO- --show-progress https://github.com/drwetter/testssl.sh/tarball/%TESTSSL_GIT_BRANCH% ^| tar -xzv --strip-components 1
         echo   fi
-		echo   chmod +x /opt/testssl/testssl.sh
+        echo   chmod +x /opt/testssl/testssl.sh
         echo fi
     )
 
@@ -369,7 +369,7 @@ echo Creating launcher [%Start_cmd%]...
     echo echo Replacing [/etc/fstab]...
     echo ^(
     echo     echo # /etc/fstab
-	echo     echo # IMPORTANT: this files is recreated on each start by cygwin-portable.cmd
+    echo     echo # IMPORTANT: this files is recreated on each start by cygwin-portable.cmd
     echo     echo #
     echo     echo #    This file is read once by the first process in a Cygwin process tree.
     echo     echo #    To pick up changes, restart all Cygwin processes.  For a description
@@ -381,7 +381,7 @@ echo Creating launcher [%Start_cmd%]...
     echo     echo %%CYGWIN_ROOT%%      /        ntfs override,binary,auto,noacl  0  0
     echo     echo none /cygdrive cygdrive binary,noacl,posix=0,user 0 0
     echo ^) ^> %%CYGWIN_ROOT%%\etc\fstab
-	echo.
+    echo.
     echo %%CYGWIN_DRIVE%%
     echo chdir "%%CYGWIN_ROOT%%\bin"
     echo bash "%%CYGWIN_ROOT%%\portable-init.sh"
