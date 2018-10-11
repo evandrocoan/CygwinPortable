@@ -220,14 +220,14 @@ echo Creating updater [%Updater_cmd%]...
     echo echo # Updating [Cygwin Portable] succeeded.
     echo echo ###########################################################
 	echo timeout /T 60
-	echo goto :eof
-	echo echo.
-	echo :fail
+	echo exit /0
+    echo echo.
+    echo :fail
     echo echo ###########################################################
     echo echo # Updating [Cygwin Portable] FAILED!
     echo echo ###########################################################
-	echo timeout /T 60
-	echo exit /1
+    echo timeout /T 60
+    echo exit /1
 ) >"%Updater_cmd%" || goto :fail
 
 set Cygwin_bat=%CYGWIN_ROOT%\Cygwin.bat
@@ -534,8 +534,8 @@ echo ###########################################################
 echo.
 echo Use [%Start_cmd%] to launch Cygwin Portable.
 echo.
-timeout /T 60
-goto :eof
+rem timeout /T 60
+exit /b 0
 
 :fail
     if exist "%DOWNLOADER%" (
@@ -546,5 +546,5 @@ goto :eof
     echo # Installing [Cygwin Portable] FAILED!
     echo ###########################################################
     echo.
-    timeout /T 60
+    rem timeout /T 60
     exit /b 1
