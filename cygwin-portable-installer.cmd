@@ -534,7 +534,7 @@ echo ###########################################################
 echo.
 echo Use [%Start_cmd%] to launch Cygwin Portable.
 echo.
-rem timeout /T 60
+timeout /T 60
 exit /b 0
 
 :fail
@@ -546,5 +546,5 @@ exit /b 0
     echo # Installing [Cygwin Portable] FAILED!
     echo ###########################################################
     echo.
-    rem timeout /T 60
+    timeout /T 60
     exit /b 1
