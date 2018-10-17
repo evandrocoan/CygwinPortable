@@ -535,7 +535,8 @@ echo.
 echo Use [%Start_cmd%] to launch Cygwin Portable.
 echo.
 timeout /T 60
-exit /b 0
+:: Exit the batch file, without closing the cmd.exe, if called from another script
+goto :eof
 
 :fail
     if exist "%DOWNLOADER%" (
