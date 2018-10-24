@@ -44,7 +44,7 @@ set CYGWIN_MIRROR=http://linorg.usp.br/cygwin/
 set CYGWIN_USERNAME=root
 
 :: select the packages to be installed automatically via apt-cyg
-set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,gnupg,inetutils,mc,nc,openssh,openssl,perl,python3,python3-pip,pv,unzip,vim,wget,zip,zstd,graphviz,unison2.51,make,gcc-g++
+set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,gnupg,inetutils,mc,nc,openssh,openssl,perl,python3,python3-pip,pv,unzip,vim,wget,zip,zstd,graphviz,unison2.51,make,gcc-g++,ncdu
 
 :: if set to 'yes' the local package cache created by cygwin setup will be deleted after installation/update
 set DELETE_CYGWIN_PACKAGE_CACHE=no
