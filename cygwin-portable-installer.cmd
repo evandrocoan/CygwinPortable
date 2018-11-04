@@ -40,8 +40,13 @@ set PROXY_PORT=8080
 :: change the URL to the closest mirror https://cygwin.com/mirrors.html
 set CYGWIN_MIRROR=http://linorg.usp.br/cygwin/
 
+:: if set to yes, then, a different user than your current computer account will be created.
+:: if set to no, then, you need to set CYGWIN_USERNAME to your current computer user name.
+set CREATE_ROOT_USER=no
+
 :: choose a user name under Cygwin
-set CYGWIN_USERNAME=root
+if "%1"=="" set CYGWIN_USERNAME=root
+if not "%1"=="" set CYGWIN_USERNAME=%1
 
 :: select the packages to be installed automatically via apt-cyg
 set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,gnupg,inetutils,mc,nc,openssh,openssl,perl,python3,python3-pip,pv,unzip,vim,wget,zip,zstd,graphviz,unison2.51,make,gcc-g++,ncdu
@@ -412,7 +417,7 @@ echo Creating launcher [%Start_cmd%]...
 ) >"%Start_cmd%" || goto :fail
 
 :: launching Bash once to initialize user home dir
-call %Start_cmd% whoami
+if %CREATE_ROOT_USER%=="yes" call %Start_cmd% whoami
 
 set conemu_config=%INSTALL_ROOT%conemu\ConEmu.xml
 if "%INSTALL_CONEMU%" == "yes" (
