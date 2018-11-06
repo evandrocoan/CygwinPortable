@@ -21,7 +21,7 @@
 :: =====
 :: This self-contained Windows batch file creates a portable Cygwin (https://cygwin.com/mirrors.html) installation.
 :: By default it automatically installs :
-:: - apt-cyg (cygwin command-line package manager, see https://github.com/transcode-open/apt-cyg)
+:: - apt-cyg (Cygwin command-line package manager, see https://github.com/transcode-open/apt-cyg)
 :: - bash-funk (Bash toolbox and adaptive Bash prompt, see https://github.com/vegardit/bash-funk)
 :: - ConEmu (multi-tabbed terminal, https://conemu.github.io/)
 :: - testssl.sh (command line tool to check SSL/TLS configurations of servers, see https://testssl.sh/)
@@ -51,7 +51,7 @@ if not "%CREATE_ROOT_USER%"=="yes" set "CYGWIN_USERNAME=%USERNAME%"
 :: select the packages to be installed automatically via apt-cyg
 set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,gnupg,inetutils,mc,nc,openssh,openssl,perl,python3,python3-pip,pv,unzip,vim,wget,zip,zstd,graphviz,unison2.51,make,gcc-g++,ncdu,gdb
 
-:: if set to 'yes' the local package cache created by cygwin setup will be deleted after installation/update
+:: if set to 'yes' the local package cache created by Cygwin setup will be deleted after installation/update
 set DELETE_CYGWIN_PACKAGE_CACHE=no
 
 :: if set to 'yes' the apt-cyg command line package manager (https://github.com/transcode-open/apt-cyg) will be installed automatically
@@ -67,14 +67,14 @@ set TESTSSL_GIT_BRANCH=2.9.5
 
 :: use ConEmu based tabbed terminal instead of Mintty based single window terminal, see https://conemu.github.io/
 set INSTALL_CONEMU=no
-set CON_EMU_OPTIONS=-Title cygwin-portable ^
+set CON_EMU_OPTIONS=-Title Cygwin-portable ^
  -QuitOnClose
 
 :: add more path if required, but at the cost of runtime performance (e.g. slower forks)
 set CYGWIN_PATH=%%SystemRoot%%\system32;%%SystemRoot%%
 
 :: set Mintty options, see https://cdn.rawgit.com/mintty/mintty/master/docs/mintty.1.html#CONFIGURATION
-rem set MINTTY_OPTIONS=--Title cygwin-portable ^
+rem set MINTTY_OPTIONS=--Title Cygwin-portable ^
 rem   -o Columns=160 ^
 rem   -o Rows=50 ^
 rem   -o BellType=0 ^
@@ -106,7 +106,7 @@ echo.
 
 set INSTALL_ROOT=%~dp0
 
-set CYGWIN_ROOT=%INSTALL_ROOT%cygwin
+set CYGWIN_ROOT=%INSTALL_ROOT%Cygwin
 echo Creating Cygwin root [%CYGWIN_ROOT%]...
 if not exist "%CYGWIN_ROOT%" (
     md "%CYGWIN_ROOT%"
@@ -201,7 +201,7 @@ set Updater_cmd=%CYGWIN_ROOT%\cygwin-portable-updater.cmd
 echo Creating updater [%Updater_cmd%]...
 (
     echo @echo off
-    :: echo set CYGWIN_ROOT=%%~dp0cygwin
+    :: echo set CYGWIN_ROOT=%%~dp0Cygwin
     echo set CYGWIN_ROOT=%%~dp0
     echo echo.
     echo.
@@ -258,7 +258,7 @@ echo Creating [%Init_sh%]...
     if %CREATE_ROOT_USER%=="yes" echo # Check if current Windows user is in /etc/passwd
     if %CREATE_ROOT_USER%=="yes" echo USER_SID="$(mkpasswd -c | cut -d':' -f 5)"
     if %CREATE_ROOT_USER%=="yes" echo if ! grep -F "$USER_SID" /etc/passwd ^&^>/dev/null; then
-    if %CREATE_ROOT_USER%=="yes" echo     echo "Mapping Windows user '$USER_SID' to cygwin '$USERNAME' in /etc/passwd..."
+    if %CREATE_ROOT_USER%=="yes" echo     echo "Mapping Windows user '$USER_SID' to Cygwin '$USERNAME' in /etc/passwd..."
     if %CREATE_ROOT_USER%=="yes" echo     GID="$(mkpasswd -c | cut -d':' -f 4)"
     if %CREATE_ROOT_USER%=="yes" echo     echo $USERNAME:unused:1001:$GID:$USER_SID:$HOME:/bin/bash ^>^> /etc/passwd
     if %CREATE_ROOT_USER%=="yes" echo fi
@@ -355,7 +355,7 @@ echo Creating launcher [%Start_cmd%]...
     echo setlocal enabledelayedexpansion
     echo set CWD=%%cd%%
     echo set CYGWIN_DRIVE=%%~d0
-    :: echo set CYGWIN_ROOT=%%~dp0cygwin
+    :: echo set CYGWIN_ROOT=%%~dp0Cygwin
     echo set CYGWIN_ROOT=%%~dp0
     echo.
     echo for %%%%i in ^(adb.exe^) do ^(
@@ -486,7 +486,7 @@ if "%INSTALL_CONEMU%" == "yes" (
         echo            ^<value name="Flags" type="dword" data="00000005"/^>
         echo            ^<value name="Hotkey" type="dword" data="0000a254"/^>
         echo            ^<value name="GuiArgs" type="string" data=""/^>
-        echo            ^<value name="Cmd1" type="string" data="%%ConEmuBaseDirShort%%\conemu-cyg-64.exe -new_console:m:/cygdrive -new_console:p1:C:&quot;%%ConEmuDir%%\..\cygwin\Cygwin.ico&quot;:d:&quot;%%ConEmuDir%%\..\cygwin\home\%CYGWIN_USERNAME%&quot;"/^>
+        echo            ^<value name="Cmd1" type="string" data="%%ConEmuBaseDirShort%%\conemu-cyg-64.exe -new_console:m:/cygdrive -new_console:p1:C:&quot;%%ConEmuDir%%\..\Cygwin\Cygwin.ico&quot;:d:&quot;%%ConEmuDir%%\..\Cygwin\home\%CYGWIN_USERNAME%&quot;"/^>
         echo            ^<value name="Active" type="long" data="0"/^>
         echo            ^<value name="Count" type="long" data="1"/^>
         echo        ^</key^>
