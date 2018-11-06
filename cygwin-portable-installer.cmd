@@ -45,11 +45,11 @@ set CYGWIN_MIRROR=http://linorg.usp.br/cygwin/
 set CREATE_ROOT_USER=no
 
 :: choose a user name under Cygwin
-if "%1"=="" set CYGWIN_USERNAME=root
-if not "%1"=="" set CYGWIN_USERNAME=%1
+set CYGWIN_USERNAME=root
+if not "%CREATE_ROOT_USER%"=="yes" set "CYGWIN_USERNAME=%USERNAME%"
 
 :: select the packages to be installed automatically via apt-cyg
-set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,gnupg,inetutils,mc,nc,openssh,openssl,perl,python3,python3-pip,pv,unzip,vim,wget,zip,zstd,graphviz,unison2.51,make,gcc-g++,ncdu
+set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,gnupg,inetutils,mc,nc,openssh,openssl,perl,python3,python3-pip,pv,unzip,vim,wget,zip,zstd,graphviz,unison2.51,make,gcc-g++,ncdu,gdb
 
 :: if set to 'yes' the local package cache created by cygwin setup will be deleted after installation/update
 set DELETE_CYGWIN_PACKAGE_CACHE=no
@@ -196,11 +196,13 @@ if "%DELETE_CYGWIN_PACKAGE_CACHE%" == "yes" (
     rd /s /q "%CYGWIN_ROOT%\.pkg-cache"
 )
 
-set Updater_cmd=%INSTALL_ROOT%cygwin-portable-updater.cmd
+:: set Updater_cmd=%INSTALL_ROOT%\cygwin-portable-updater.cmd
+set Updater_cmd=%CYGWIN_ROOT%\cygwin-portable-updater.cmd
 echo Creating updater [%Updater_cmd%]...
 (
     echo @echo off
-    echo set CYGWIN_ROOT=%%~dp0cygwin
+    :: echo set CYGWIN_ROOT=%%~dp0cygwin
+    echo set CYGWIN_ROOT=%%~dp0
     echo echo.
     echo.
     echo echo ###########################################################
@@ -249,27 +251,27 @@ echo Creating [%Init_sh%]...
 (
     echo #!/usr/bin/env bash
     echo.
-    echo #
-    echo # Map Current Windows User to root user
-    echo #
-    echo.
-    echo # Check if current Windows user is in /etc/passwd
-    echo USER_SID="$(mkpasswd -c | cut -d':' -f 5)"
-    echo if ! grep -F "$USER_SID" /etc/passwd ^&^>/dev/null; then
-    echo     echo "Mapping Windows user '$USER_SID' to cygwin '$USERNAME' in /etc/passwd..."
-    echo     GID="$(mkpasswd -c | cut -d':' -f 4)"
-    echo     echo $USERNAME:unused:1001:$GID:$USER_SID:$HOME:/bin/bash ^>^> /etc/passwd
-    echo fi
-    echo.
-    echo # already set in cygwin-portable.cmd:
-    echo # export CYGWIN_ROOT=$(cygpath -w /^)
-    echo.
-    echo #
-    echo # adjust Cygwin packages cache path
-    echo #
-    echo pkg_cache_dir=$(cygpath -w "$CYGWIN_ROOT/../cygwin-pkg-cache"^)
-    echo sed -i -E "s/.*\\\cygwin-pkg-cache/"$'\t'"${pkg_cache_dir//\\/\\\\}/" /etc/setup/setup.rc
-    echo.
+    if %CREATE_ROOT_USER%=="yes" echo #
+    if %CREATE_ROOT_USER%=="yes" echo # Map Current Windows User to root user
+    if %CREATE_ROOT_USER%=="yes" echo #
+    if %CREATE_ROOT_USER%=="yes" echo.
+    if %CREATE_ROOT_USER%=="yes" echo # Check if current Windows user is in /etc/passwd
+    if %CREATE_ROOT_USER%=="yes" echo USER_SID="$(mkpasswd -c | cut -d':' -f 5)"
+    if %CREATE_ROOT_USER%=="yes" echo if ! grep -F "$USER_SID" /etc/passwd ^&^>/dev/null; then
+    if %CREATE_ROOT_USER%=="yes" echo     echo "Mapping Windows user '$USER_SID' to cygwin '$USERNAME' in /etc/passwd..."
+    if %CREATE_ROOT_USER%=="yes" echo     GID="$(mkpasswd -c | cut -d':' -f 4)"
+    if %CREATE_ROOT_USER%=="yes" echo     echo $USERNAME:unused:1001:$GID:$USER_SID:$HOME:/bin/bash ^>^> /etc/passwd
+    if %CREATE_ROOT_USER%=="yes" echo fi
+    if %CREATE_ROOT_USER%=="yes" echo.
+    if %CREATE_ROOT_USER%=="yes" echo # already set in cygwin-portable.cmd:
+    if %CREATE_ROOT_USER%=="yes" echo # export CYGWIN_ROOT=$(cygpath -w /^)
+    if %CREATE_ROOT_USER%=="yes" echo.
+    if %CREATE_ROOT_USER%=="yes" echo #
+    if %CREATE_ROOT_USER%=="yes" echo # adjust Cygwin packages cache path
+    if %CREATE_ROOT_USER%=="yes" echo #
+    if %CREATE_ROOT_USER%=="yes" echo pkg_cache_dir=$(cygpath -w "$CYGWIN_ROOT/../cygwin-pkg-cache"^)
+    if %CREATE_ROOT_USER%=="yes" echo sed -i -E "s/.*\\\cygwin-pkg-cache/"$'\t'"${pkg_cache_dir//\\/\\\\}/" /etc/setup/setup.rc
+    if %CREATE_ROOT_USER%=="yes" echo.
     if not "%PROXY_HOST%" == "" (
         echo if [[ $HOSTNAME == "%COMPUTERNAME%" ]]; then
         echo     export http_proxy=http://%PROXY_HOST%:%PROXY_PORT%
@@ -345,14 +347,16 @@ echo Creating [%Init_sh%]...
 ) >"%Init_sh%" || goto :fail
 "%CYGWIN_ROOT%\bin\dos2unix" "%Init_sh%" || goto :fail
 
-set Start_cmd=%INSTALL_ROOT%cygwin-portable.cmd
+:: set Start_cmd=%INSTALL_ROOT%\cygwin-portable.cmd
+set Start_cmd=%CYGWIN_ROOT%\cygwin-portable.cmd
 echo Creating launcher [%Start_cmd%]...
 (
     echo @echo off
     echo setlocal enabledelayedexpansion
     echo set CWD=%%cd%%
     echo set CYGWIN_DRIVE=%%~d0
-    echo set CYGWIN_ROOT=%%~dp0cygwin
+    :: echo set CYGWIN_ROOT=%%~dp0cygwin
+    echo set CYGWIN_ROOT=%%~dp0
     echo.
     echo for %%%%i in ^(adb.exe^) do ^(
     echo    set "ADB_PATH=%%%%~dp$PATH:i"
@@ -371,22 +375,22 @@ echo Creating launcher [%Start_cmd%]...
     echo set GROUP=None
     echo set GRP=
     echo.
-    echo echo Replacing [/etc/fstab]...
-    echo ^(
-    echo     echo # /etc/fstab
-    echo     echo # IMPORTANT: this files is recreated on each start by cygwin-portable.cmd
-    echo     echo #
-    echo     echo #    This file is read once by the first process in a Cygwin process tree.
-    echo     echo #    To pick up changes, restart all Cygwin processes.  For a description
-    echo     echo #    see https://cygwin.com/cygwin-ug-net/using.html#mount-table
-    echo     echo.
-    echo     echo # noacl = disable Cygwin's - apparently broken - special ACL treatment which prevents apt-cyg and other programs from working
-    echo     echo %%CYGWIN_ROOT%%/bin  /usr/bin ntfs binary,auto,noacl           0  0
-    echo     echo %%CYGWIN_ROOT%%/lib  /usr/lib ntfs binary,auto,noacl           0  0
-    echo     echo %%CYGWIN_ROOT%%      /        ntfs override,binary,auto,noacl  0  0
-    echo     echo none /cygdrive cygdrive binary,noacl,posix=0,user 0 0
-    echo ^) ^> %%CYGWIN_ROOT%%\etc\fstab
-    echo.
+    if %CREATE_ROOT_USER%=="yes" echo echo Replacing [/etc/fstab]...
+    if %CREATE_ROOT_USER%=="yes" echo ^(
+    if %CREATE_ROOT_USER%=="yes" echo     echo # /etc/fstab
+    if %CREATE_ROOT_USER%=="yes" echo     echo # IMPORTANT: this files is recreated on each start by cygwin-portable.cmd
+    if %CREATE_ROOT_USER%=="yes" echo     echo #
+    if %CREATE_ROOT_USER%=="yes" echo     echo #    This file is read once by the first process in a Cygwin process tree.
+    if %CREATE_ROOT_USER%=="yes" echo     echo #    To pick up changes, restart all Cygwin processes.  For a description
+    if %CREATE_ROOT_USER%=="yes" echo     echo #    see https://cygwin.com/cygwin-ug-net/using.html#mount-table
+    if %CREATE_ROOT_USER%=="yes" echo     echo.
+    if %CREATE_ROOT_USER%=="yes" echo     echo # noacl = disable Cygwin's - apparently broken - special ACL treatment which prevents apt-cyg and other programs from working
+    if %CREATE_ROOT_USER%=="yes" echo     echo %%CYGWIN_ROOT%%/bin  /usr/bin ntfs binary,auto,noacl           0  0
+    if %CREATE_ROOT_USER%=="yes" echo     echo %%CYGWIN_ROOT%%/lib  /usr/lib ntfs binary,auto,noacl           0  0
+    if %CREATE_ROOT_USER%=="yes" echo     echo %%CYGWIN_ROOT%%      /        ntfs override,binary,auto,noacl  0  0
+    if %CREATE_ROOT_USER%=="yes" echo     echo none /cygdrive cygdrive binary,noacl,posix=0,user 0 0
+    if %CREATE_ROOT_USER%=="yes" echo ^) ^> %%CYGWIN_ROOT%%\etc\fstab
+    if %CREATE_ROOT_USER%=="yes" echo.
     echo %%CYGWIN_DRIVE%%
     echo chdir "%%CYGWIN_ROOT%%\bin"
     echo bash "%%CYGWIN_ROOT%%\portable-init.sh"
@@ -417,7 +421,7 @@ echo Creating launcher [%Start_cmd%]...
 ) >"%Start_cmd%" || goto :fail
 
 :: launching Bash once to initialize user home dir
-if %CREATE_ROOT_USER%=="yes" call %Start_cmd% whoami
+call %Start_cmd% whoami
 
 set conemu_config=%INSTALL_ROOT%conemu\ConEmu.xml
 if "%INSTALL_CONEMU%" == "yes" (
