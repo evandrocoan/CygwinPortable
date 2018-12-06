@@ -375,20 +375,26 @@ echo Creating launcher [%Start_cmd%]...
     echo set GROUP=None
     echo set GRP=
     echo.
-    if %CREATE_ROOT_USER%=="yes" echo echo Replacing [/etc/fstab]...
-    if %CREATE_ROOT_USER%=="yes" echo ^(
-    if %CREATE_ROOT_USER%=="yes" echo     echo # /etc/fstab
-    if %CREATE_ROOT_USER%=="yes" echo     echo # IMPORTANT: this files is recreated on each start by cygwin-portable.cmd
-    if %CREATE_ROOT_USER%=="yes" echo     echo #
-    if %CREATE_ROOT_USER%=="yes" echo     echo #    This file is read once by the first process in a Cygwin process tree.
-    if %CREATE_ROOT_USER%=="yes" echo     echo #    To pick up changes, restart all Cygwin processes.  For a description
-    if %CREATE_ROOT_USER%=="yes" echo     echo #    see https://cygwin.com/cygwin-ug-net/using.html#mount-table
-    if %CREATE_ROOT_USER%=="yes" echo     echo.
-    if %CREATE_ROOT_USER%=="yes" echo     echo # noacl = disable Cygwin's - apparently broken - special ACL treatment which prevents apt-cyg and other programs from working
+    echo echo Replacing [/etc/fstab]...
+    echo ^(
+    echo     echo # /etc/fstab
+    echo     echo # IMPORTANT: this files is recreated on each start by cygwin-portable.cmd
+    echo     echo #
+    echo     echo #    This file is read once by the first process in a Cygwin process tree.
+    echo     echo #    To pick up changes, restart all Cygwin processes.  For a description
+    echo     echo #    see https://cygwin.com/cygwin-ug-net/using.html#mount-table
+    echo     echo.
     if %CREATE_ROOT_USER%=="yes" echo     echo %%CYGWIN_ROOT%%/bin  /usr/bin ntfs binary,auto,noacl           0  0
     if %CREATE_ROOT_USER%=="yes" echo     echo %%CYGWIN_ROOT%%/lib  /usr/lib ntfs binary,auto,noacl           0  0
     if %CREATE_ROOT_USER%=="yes" echo     echo %%CYGWIN_ROOT%%      /        ntfs override,binary,auto,noacl  0  0
-    if %CREATE_ROOT_USER%=="yes" echo     echo none /cygdrive cygdrive binary,noacl,posix=0,user 0 0
+    echo     echo.
+    echo     echo # This is default anyway:
+    echo     echo # none /cygdrive cygdrive binary,posix=0,user 0 0
+    echo     echo.
+    echo     echo # https://georgik.rocks/how-to-fix-incorrect-cygwin-permission-inwindows-7/
+    echo     echo # noacl = disable Cygwin's - apparently broken - special ACL treatment which prevents apt-cyg and other programs from working
+    echo     echo none /cygdrive cygdrive binary,noacl,posix=0,user 0 0
+    echo     echo.
     if %CREATE_ROOT_USER%=="yes" echo ^) ^> %%CYGWIN_ROOT%%\etc\fstab
     if %CREATE_ROOT_USER%=="yes" echo.
     echo %%CYGWIN_DRIVE%%
