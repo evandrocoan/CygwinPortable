@@ -25,6 +25,7 @@
 :: - bash-funk (Bash toolbox and adaptive Bash prompt, see https://github.com/vegardit/bash-funk)
 :: - ConEmu (multi-tabbed terminal, https://conemu.github.io/)
 :: - Ansible (deployment automation tool, see https://github.com/ansible/ansible)
+:: - AWS CLI (AWS cloud command line tool, see https://github.com/aws/aws-cli)
 :: - testssl.sh (command line tool to check SSL/TLS configurations of servers, see https://testssl.sh/)
 
 
@@ -45,12 +46,15 @@ set CYGWIN_MIRROR=http://linorg.usp.br/cygwin/
 :: if set to no, then, you need to set CYGWIN_USERNAME to your current computer user name.
 set CREATE_ROOT_USER=no
 
+:: one of: auto,64,32 - specifies if 32 or 64 bit version should be installed or automatically detected based on current OS architecture
+set CYGWIN_ARCH=auto
+
 :: choose a user name under Cygwin
 set CYGWIN_USERNAME=root
 if not "%CREATE_ROOT_USER%"=="yes" set "CYGWIN_USERNAME=%USERNAME%"
 
 :: select the packages to be installed automatically via apt-cyg
-set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,gnupg,inetutils,mc,nc,openssh,openssl,perl,python3,python3-pip,pv,unzip,vim,wget,zip,zstd,graphviz,unison2.51,make,gcc-g++,ncdu,gdb
+set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,git-svn,gnupg,inetutils,lz4,mc,nc,openssh,openssl,perl,python,pv,ssh-pageant,subversion,unzip,vim,wget,zip,zstd,python3,python-pip,python3-pip,graphviz,unison2.51,make,gcc-g++,ncdu,gdb
 
 :: if set to 'yes' the local package cache created by Cygwin setup will be deleted after installation/update
 set DELETE_CYGWIN_PACKAGE_CACHE=no
@@ -64,6 +68,9 @@ set INSTALL_BASH_FUNK=no
 :: if set to 'yes' Ansible (https://github.com/ansible/ansible) will be installed automatically
 set INSTALL_ANSIBLE=yes
 set ANSIBLE_GIT_BRANCH=stable-2.7
+
+:: if set to 'yes' AWS CLI (https://github.com/aws/aws-cli) will be installed automatically
+set INSTALL_AWS_CLI=yes
 
 :: if set to 'yes' testssl.sh (https://testssl.sh/) will be installed automatically
 set INSTALL_TESTSSL_SH=yes
@@ -149,21 +156,30 @@ if "%PROXY_HOST%" == "" (
     echo.
 ) >"%DOWNLOADER%" || goto :fail
 
+:: https://blogs.msdn.microsoft.com/david.wang/2006/03/27/howto-detect-process-bitness/
+if "%CYGWIN_ARCH%" == "auto" (
+    if "%PROCESSOR_ARCHITECTURE%" == "x86" (
+        if defined PROCESSOR_ARCHITEW6432 (
+            set CYGWIN_ARCH=64
+        ) else (
+            set CYGWIN_ARCH=32
+        )
+    ) else (
+        set CYGWIN_ARCH=64
+    )
+)
+
 :: download Cygwin 32 or 64 setup exe depending on detected architecture
-if "%PROCESSOR_ARCHITEW6432%" == "AMD64" (
+if "%CYGWIN_ARCH%" == "64" (
     set CYGWIN_SETUP=setup-x86_64.exe
 ) else (
-    if "%PROCESSOR_ARCHITECTURE%" == "x86" (
-        set CYGWIN_SETUP=setup-x86.exe
-    ) else (
-        set CYGWIN_SETUP=setup-x86_64.exe
-    )
+    set CYGWIN_SETUP=setup-x86.exe
 )
 
 if exist "%CYGWIN_ROOT%\%CYGWIN_SETUP%" (
     del "%CYGWIN_ROOT%\%CYGWIN_SETUP%" || goto :fail
 )
-cscript //Nologo %DOWNLOADER% https://cygwin.org/%CYGWIN_SETUP% "%CYGWIN_ROOT%\%CYGWIN_SETUP%" || goto :fail
+cscript //Nologo "%DOWNLOADER%" https://cygwin.org/%CYGWIN_SETUP% "%CYGWIN_ROOT%\%CYGWIN_SETUP%" || goto :fail
 del "%DOWNLOADER%"
 
 :: Cygwin command line options: https://cygwin.com/faq/faq.html#faq.setup.cli
@@ -314,8 +330,9 @@ echo Creating [%Init_sh%]...
     if "%INSTALL_ANSIBLE%" == "yes" (
         echo.
         echo #
-        echo # Installing Ansible if required
+        echo # Installing Ansible if not yet installed
         echo #
+        echo if [[ ! -e /opt ]]; then mkdir /opt; fi
         echo export PYTHONHOME=/usr/ PYTHONPATH=/usr/lib/python2.7 # workaround for "ImportError: No module named site" when Python for Windows is installed too
         echo export PATH=$PATH:/opt/ansible/bin
         echo export PYTHONPATH=$PYTHONPATH:/opt/ansible/lib
@@ -327,9 +344,28 @@ echo Creating [%Init_sh%]...
         echo fi
         echo.
     )
+    if "%INSTALL_AWS_CLI%" == "yes" (
+        echo.
+        echo #
+        echo # Installing AWS CLI if not yet installed
+        echo #
+        echo if ! hash aws 2^>/dev/null; then
+        echo     echo "*******************************************************************************"
+        echo     echo "* Installing [AWS CLI]..."
+        echo     echo "*******************************************************************************"
+        echo     python -m ensurepip --default-pip
+        echo     # remove potential left-overs of previous installation
+        echo     rm -rf awscli-bundle.zip awscli-bundle /usr/bin/aws.cmd /usr/bin/aws /usr/local/aws /usr/local/bin/aws
+        echo     curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip
+        echo     unzip awscli-bundle.zip
+        echo     awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
+        echo     rm -rf awscli-bundle awscli-bundle.zip
+        echo fi
+        echo.
+    )
     if "%INSTALL_APT_CYG%" == "yes" (
         echo #
-        echo # Installing apt-cyg package manager if required
+        echo # Installing apt-cyg package manager if not yet installed
         echo #
         echo if [[ ! -x /usr/local/bin/apt-cyg ]]; then
         echo     echo "*******************************************************************************"
@@ -343,7 +379,7 @@ echo Creating [%Init_sh%]...
     if "%INSTALL_BASH_FUNK%" == "yes" (
         echo.
         echo #
-        echo # Installing bash-funk if required
+        echo # Installing bash-funk if not yet installed
         echo #
         echo if [[ ! -e /opt ]]; then mkdir /opt; fi
         echo if [[ ! -e /opt/bash-funk/bash-funk.sh ]]; then
@@ -364,7 +400,7 @@ echo Creating [%Init_sh%]...
     if "%INSTALL_TESTSSL_SH%" == "yes" (
         echo.
         echo #
-        echo # Installing testssl.sh if required
+        echo # Installing testssl.sh if not yet installed
         echo #
         echo if [[ ! -e /opt ]]; then mkdir /opt; fi
         echo if [[ ! -e /opt/testssl/testssl.sh ]]; then
@@ -443,15 +479,11 @@ echo Creating launcher [%Start_cmd%]...
     echo.
     echo if "%%1" == "" (
     if "%INSTALL_CONEMU%" == "yes" (
-        echo if "%%PROCESSOR_ARCHITEW6432%%" == "AMD64" (
-        echo     start %%~dp0conemu\ConEmu64.exe %CON_EMU_OPTIONS%
-        echo ^) else (
-        echo     if "%%PROCESSOR_ARCHITECTURE%%" == "x86" (
-        echo         start %%~dp0conemu\ConEmu.exe %CON_EMU_OPTIONS%
-        echo     ^) else (
-        echo         start %%~dp0conemu\ConEmu64.exe %CON_EMU_OPTIONS%
-        echo     ^)
-        echo ^)
+        if "%CYGWIN_ARCH%" == "64" (
+            echo   start %%~dp0conemu\ConEmu64.exe %CON_EMU_OPTIONS%
+        ) else (
+            echo   start %%~dp0conemu\ConEmu.exe %CON_EMU_OPTIONS%
+        )
     ) else (
         echo   mintty --nopin %MINTTY_OPTIONS% --icon %CYGWIN_ROOT%\Cygwin-Terminal.ico -
     )
@@ -532,7 +564,7 @@ if "%INSTALL_CONEMU%" == "yes" (
         echo            ^<value name="Flags" type="dword" data="00000005"/^>
         echo            ^<value name="Hotkey" type="dword" data="0000a254"/^>
         echo            ^<value name="GuiArgs" type="string" data=""/^>
-        echo            ^<value name="Cmd1" type="string" data="%%ConEmuBaseDirShort%%\conemu-cyg-64.exe -new_console:m:/cygdrive -new_console:p1:C:&quot;%%ConEmuDir%%\..\Cygwin\Cygwin.ico&quot;:d:&quot;%%ConEmuDir%%\..\Cygwin\home\%CYGWIN_USERNAME%&quot;"/^>
+        echo            ^<value name="Cmd1" type="string" data="%%ConEmuBaseDirShort%%\conemu-cyg-%CYGWIN_ARCH%.exe -new_console:m:/cygdrive -new_console:p1:C:&quot;%%ConEmuDir%%\..\Cygwin\Cygwin.ico&quot;:d:&quot;%%ConEmuDir%%\..\Cygwin\home\%CYGWIN_USERNAME%&quot;"/^>
         echo            ^<value name="Active" type="long" data="0"/^>
         echo            ^<value name="Count" type="long" data="1"/^>
         echo        ^</key^>
