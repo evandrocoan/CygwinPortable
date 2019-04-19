@@ -257,8 +257,8 @@ echo Creating updater [%Updater_cmd%]...
     echo echo # Updating [Cygwin Portable] succeeded.
     echo echo ###########################################################
     echo timeout /T 60
-    :: echo exit /0
-    :: Exit the batch file, without closing the cmd.exe, if called from another script
+    echo :: echo exit /0
+    echo :: Exit the batch file, without closing the cmd.exe, if called from another script
     echo goto :eof
     echo echo.
     echo :fail
