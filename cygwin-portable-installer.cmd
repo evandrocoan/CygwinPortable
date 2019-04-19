@@ -1,4 +1,4 @@
-@echo off
+@echo on
 ::
 :: Copyright 2017-2018 by Vegard IT GmbH, Germany, https://vegardit.com
 ::
@@ -427,7 +427,7 @@ echo Creating [%Init_sh%]...
 set Start_cmd=%CYGWIN_ROOT%\cygwin-portable.cmd
 echo Creating launcher [%Start_cmd%]...
 (
-    echo @echo off
+    echo @echo on
     echo setlocal enabledelayedexpansion
     echo set CWD=%%cd%%
     echo set CYGWIN_DRIVE=%%~d0
@@ -472,7 +472,8 @@ echo Creating launcher [%Start_cmd%]...
     echo     echo none /cygdrive cygdrive binary,noacl,posix=0,user 0 0
     echo     echo.
     if %CREATE_ROOT_USER%=="yes" echo ^) ^> %%CYGWIN_ROOT%%\etc\fstab
-    if %CREATE_ROOT_USER%=="yes" echo.
+    if %CREATE_ROOT_USER%=="yes" echo .
+    if NOT %CREATE_ROOT_USER%=="yes" echo ^)
     echo %%CYGWIN_DRIVE%%
     echo chdir "%%CYGWIN_ROOT%%\bin"
     echo bash "%%CYGWIN_ROOT%%\portable-init.sh"
@@ -501,6 +502,7 @@ echo Creating launcher [%Start_cmd%]...
 :: launching Bash once to initialize user home dir
 call %Start_cmd% whoami
 
+echo CONEMU_CONFIG?
 set conemu_config=%INSTALL_ROOT%conemu\ConEmu.xml
 if "%INSTALL_CONEMU%" == "yes" (
     (
@@ -575,6 +577,7 @@ if "%INSTALL_CONEMU%" == "yes" (
 
 set Bashrc_sh=%CYGWIN_ROOT%\home\%CYGWIN_USERNAME%\.bashrc
 
+echo CYGWIN_PACKAGES?
 if not "%CYGWIN_PACKAGES%" == "%CYGWIN_PACKAGES:ssh-pageant=%" (
     :: https://github.com/cuviper/ssh-pageant
     echo Adding ssh-pageant to [/home/%CYGWIN_USERNAME%/.bashrc]...
@@ -584,6 +587,7 @@ if not "%CYGWIN_PACKAGES%" == "%CYGWIN_PACKAGES:ssh-pageant=%" (
     ) >>"%Bashrc_sh%" || goto :fail
 )
 
+echo PROXY_HOST?
 if not "%PROXY_HOST%" == "" (
     echo Adding proxy settings for host [%COMPUTERNAME%] to [/home/%CYGWIN_USERNAME%/.bashrc]...
     find "export http_proxy" "%Bashrc_sh%" >NUL || (
@@ -598,6 +602,8 @@ if not "%PROXY_HOST%" == "" (
         echo fi
     ) >>"%Bashrc_sh%" || goto :fail
 )
+
+echo INSTALL_ANSIBLE?
 if "%INSTALL_ANSIBLE%" == "yes" (
     echo Adding Ansible to PATH in [/home/%CYGWIN_USERNAME%/.bashrc]...
     find "ansible" "%Bashrc_sh%" >NUL || (
@@ -609,6 +615,8 @@ if "%INSTALL_ANSIBLE%" == "yes" (
         ) >>"%Bashrc_sh%" || goto :fail
     )
 )
+
+echo INSTALL_TESTSSL_SH?
 if "%INSTALL_TESTSSL_SH%" == "yes" (
     echo Adding testssl.sh to PATH in [/home/%CYGWIN_USERNAME%/.bashrc]...
     find "testssl" "%Bashrc_sh%" >NUL || (
@@ -618,6 +626,8 @@ if "%INSTALL_TESTSSL_SH%" == "yes" (
         ) >>"%Bashrc_sh%" || goto :fail
     )
 )
+
+echo INSTALL_BASH_FUNK?
 if "%INSTALL_BASH_FUNK%" == "yes" (
     echo Adding bash-funk to [/home/%CYGWIN_USERNAME%/.bashrc]...
     find "bash-funk" "%Bashrc_sh%" >NUL || (
