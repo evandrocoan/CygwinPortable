@@ -70,7 +70,7 @@ set INSTALL_ANSIBLE=yes
 set ANSIBLE_GIT_BRANCH=stable-2.7
 
 :: if set to 'yes' AWS CLI (https://github.com/aws/aws-cli) will be installed automatically
-set INSTALL_AWS_CLI=yes
+set INSTALL_AWS_CLI=no
 
 :: if set to 'yes' testssl.sh (https://testssl.sh/) will be installed automatically
 set INSTALL_TESTSSL_SH=yes
