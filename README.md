@@ -21,7 +21,7 @@ See also:
 1. https://github.com/MachinaCore/CygwinPortable
 1. https://github.com/vegardit/cygwin-portable-installer
 
-![Tabbed Terminal](docs/img/tabbed_terminal.png)
+![Tabbed Terminal](tabbed_terminal.png)
 
 
 ## Features
@@ -60,7 +60,7 @@ See also:
     1. install [AWS CLI](https://github.com/aws/aws-cli)
     1. install [testssl.sh](https://testssl.sh/)
 1. Now you can launch your portable Cygwin environment using the newly created `cygwin-portable.cmd` batch file.
-    ![Launch Script](docs/img/launch_script.png)
+    ![Launch Script](launch_script.png)
 
 
 ## Updating your installation
