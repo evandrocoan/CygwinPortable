@@ -54,7 +54,7 @@ set CYGWIN_USERNAME=root
 if not "%CREATE_ROOT_USER%"=="yes" set "CYGWIN_USERNAME=%USERNAME%"
 
 :: select the packages to be installed automatically via apt-cyg
-set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,git-svn,gnupg,inetutils,lz4,mc,nc,openssh,openssl,perl,pv,ssh-pageant,subversion,unzip,vim,wget,zip,zstd,python2,python3,python2-pip,python3-pip,graphviz,unison2.51,make,gcc-g++,ncdu,gdb,tree
+set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,git-svn,gnupg,inetutils,lz4,mc,nc,openssh,openssl,perl,pv,ssh-pageant,subversion,unzip,vim,wget,zip,zstd,python2,python3,python2-pip,python3-pip,graphviz,unison2.51,make,gcc-g++,ncdu,gdb,tree,psmisc
 
 :: if set to 'yes' the local package cache created by Cygwin setup will be deleted after installation/update
 set DELETE_CYGWIN_PACKAGE_CACHE=no
