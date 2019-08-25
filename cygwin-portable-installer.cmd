@@ -80,7 +80,7 @@ set CON_EMU_OPTIONS=-Title Cygwin-portable ^
  -QuitOnClose
 
 :: add more path if required, but at the cost of runtime performance (e.g. slower forks)
-set CYGWIN_PATH=%%SystemRoot%%\system32;%%SystemRoot%%
+set "CYGWIN_PATH=%%SystemRoot%%\system32;%%SystemRoot%%"
 
 :: set Mintty options, see https://cdn.rawgit.com/mintty/mintty/master/docs/mintty.1.html#CONFIGURATION
 rem set MINTTY_OPTIONS=--Title Cygwin-portable ^
@@ -113,12 +113,12 @@ echo # Installing [Cygwin Portable]...
 echo ###########################################################
 echo.
 
-set CYGWIN_DRIVE=%~d0
-set INSTALL_ROOT=%~dp0
-set CYGWIN_ROOT=%INSTALL_ROOT%Cygwin
+set "CYGWIN_DRIVE=%~d0"
+set "INSTALL_ROOT=%~dp0"
+set "CYGWIN_ROOT=%INSTALL_ROOT%Cygwin"
 
 :: Avoid conflicts with another Cygwin installation already on the system path
-set PATH=%SystemRoot%\system32;%SystemRoot%;%CYGWIN_ROOT%\bin;%ADB_PATH%
+set "PATH=%SystemRoot%\system32;%SystemRoot%;%CYGWIN_ROOT%\bin;%ADB_PATH%"
 
 echo Creating Cygwin root [%CYGWIN_ROOT%]...
 if not exist "%CYGWIN_ROOT%" (
@@ -127,8 +127,9 @@ if not exist "%CYGWIN_ROOT%" (
 
 :: create VB script that can download files
 :: not using PowerShell which may be blocked by group policies
-set DOWNLOADER=%INSTALL_ROOT%downloader.vbs
+set "DOWNLOADER=%INSTALL_ROOT%downloader.vbs"
 echo Creating [%DOWNLOADER%] script...
+
 if "%PROXY_HOST%" == "" (
     set DOWNLOADER_PROXY=.
 ) else (
@@ -235,13 +236,13 @@ if "%DELETE_CYGWIN_PACKAGE_CACHE%" == "yes" (
     rd /s /q "%CYGWIN_ROOT%\.pkg-cache"
 )
 
-:: set Updater_cmd=%INSTALL_ROOT%\cygwin-updater.cmd
-set Updater_cmd=%CYGWIN_ROOT%\cygwin-updater.cmd
+:: set "Updater_cmd=%INSTALL_ROOT%\cygwin-updater.cmd"
+set "Updater_cmd=%CYGWIN_ROOT%\cygwin-updater.cmd"
 echo Creating updater [%Updater_cmd%]...
 (
     echo @echo off
-    :: echo set CYGWIN_ROOT=%%~dp0Cygwin
-    echo set CYGWIN_ROOT=%%~dp0
+    :: echo set "CYGWIN_ROOT=%%~dp0Cygwin"
+    echo set "CYGWIN_ROOT=%%~dp0"
     echo echo.
     echo.
     echo echo ###########################################################
@@ -278,7 +279,7 @@ echo Creating updater [%Updater_cmd%]...
     echo exit /1
 ) >"%Updater_cmd%" || goto :fail
 
-set Cygwin_bat=%CYGWIN_ROOT%\Cygwin.bat
+set "Cygwin_bat=%CYGWIN_ROOT%\Cygwin.bat"
 if exist "%CYGWIN_ROOT%\Cygwin.bat" (
     echo Disabling default Cygwin launcher [%Cygwin_bat%]...
     if exist "%CYGWIN_ROOT%\cygwin-prompt.bat" (
@@ -287,7 +288,7 @@ if exist "%CYGWIN_ROOT%\Cygwin.bat" (
     rename "%Cygwin_bat%" "cygwin-prompt.bat" || goto :fail
 )
 
-set Init_sh=%CYGWIN_ROOT%\portable-init.sh
+set "Init_sh=%CYGWIN_ROOT%\portable-init.sh"
 echo Creating [%Init_sh%]...
 (
     echo #!/usr/bin/env bash
@@ -437,33 +438,33 @@ echo Creating [%Init_sh%]...
 ) >"%Init_sh%" || goto :fail
 "%CYGWIN_ROOT%\bin\dos2unix" "%Init_sh%" || goto :fail
 
-:: set Start_cmd=%INSTALL_ROOT%\cygwin-environment.cmd
-set Start_cmd=%CYGWIN_ROOT%\cygwin-environment.cmd
+:: set "Start_cmd=%INSTALL_ROOT%\cygwin-environment.cmd"
+set "Start_cmd=%CYGWIN_ROOT%\cygwin-environment.cmd"
 echo Creating launcher [%Start_cmd%]...
 (
     echo @echo on
     echo setlocal enabledelayedexpansion
-    echo set CWD=%%cd%%
-    echo set CYGWIN_DRIVE=%%~d0
-    :: echo set CYGWIN_ROOT=%%~dp0Cygwin
-    echo set CYGWIN_ROOT=%%~dp0
+    echo set "CWD=%%cd%%"
+    echo set "CYGWIN_DRIVE=%%~d0"
+    :: echo set "CYGWIN_ROOT=%%~dp0Cygwin"
+    echo set "CYGWIN_ROOT=%%~dp0"
     echo.
     echo for %%%%i in ^(adb.exe^) do ^(
-    echo    set "ADB_PATH=%%%%~dp$PATH:i"
+    echo     set "ADB_PATH=%%%%~dp$PATH:i"
     echo ^)
     echo.
-    echo set PATH=%CYGWIN_PATH%;%%CYGWIN_ROOT%%\bin;%%ADB_PATH%%
-    echo set ALLUSERSPROFILE=%%CYGWIN_ROOT%%\.ProgramData
-    echo set ProgramData=%%ALLUSERSPROFILE%%
-    echo set CYGWIN=nodosfilewarning
+    echo set "PATH=%CYGWIN_PATH%;%%CYGWIN_ROOT%%\bin;%%ADB_PATH%%"
+    echo set "ALLUSERSPROFILE=%%CYGWIN_ROOT%%\.ProgramData"
+    echo set "ProgramData=%%ALLUSERSPROFILE%%"
+    echo set "CYGWIN=nodosfilewarning"
     echo.
-    echo set USERNAME=%CYGWIN_USERNAME%
-    echo set HOME=/home/%%USERNAME%%
-    echo set SHELL=/bin/bash
-    echo set HOMEDRIVE=%%CYGWIN_DRIVE%%
-    echo set HOMEPATH=%%CYGWIN_ROOT%%\home\%%USERNAME%%
-    echo set GROUP=None
-    echo set GRP=
+    echo set "USERNAME=%CYGWIN_USERNAME%"
+    echo set "HOME=/home/%%USERNAME%%"
+    echo set "SHELL=/bin/bash"
+    echo set "HOMEDRIVE=%%CYGWIN_DRIVE%%"
+    echo set "HOMEPATH=%%CYGWIN_ROOT%%\home\%%USERNAME%%"
+    echo set "GROUP=None"
+    echo set "GRP="
     echo.
     echo echo DISABLE_WINDOWS_ACL_HANDLING? %DISABLE_WINDOWS_ACL_HANDLING%
     echo if "%DISABLE_WINDOWS_ACL_HANDLING%"=="yes" ^(
@@ -515,22 +516,22 @@ echo Creating launcher [%Start_cmd%]...
 call "%Start_cmd%" whoami
 
 :: set Start_Mintty=%INSTALL_ROOT%\cygwin-terminal.cmd
-set Start_Mintty=%CYGWIN_ROOT%\cygwin-terminal.cmd
+set "Start_Mintty=%CYGWIN_ROOT%\cygwin-terminal.cmd"
 echo Creating launcher [%Start_Mintty%]...
 (
     echo @echo on
     echo setlocal enabledelayedexpansion
-    echo set CWD=%%cd%%
-    echo set CYGWIN_DRIVE=%%~d0
-    echo set CYGWIN_ROOT=%%~dp0
+    echo set "CWD=%%cd%%"
+    echo set "CYGWIN_DRIVE=%%~d0"
+    echo set "CYGWIN_ROOT=%%~dp0"
     echo.
-    echo set USERNAME=%CYGWIN_USERNAME%
-    echo set HOME=/home/%%USERNAME%%
-    echo set SHELL=/bin/bash
-    echo set HOMEDRIVE=%%CYGWIN_DRIVE%%
-    echo set HOMEPATH=%%CYGWIN_ROOT%%\home\%%USERNAME%%
-    echo set GROUP=None
-    echo set GRP=
+    echo set "USERNAME=%CYGWIN_USERNAME%"
+    echo set "HOME=/home/%%USERNAME%%"
+    echo set "SHELL=/bin/bash"
+    echo set "HOMEDRIVE=%%CYGWIN_DRIVE%%"
+    echo set "HOMEPATH=%%CYGWIN_ROOT%%\home\%%USERNAME%%"
+    echo set "GROUP=None"
+    echo set "GRP="
     echo.
     echo %%CYGWIN_DRIVE%%
     echo chdir "%%CYGWIN_ROOT%%\bin"
@@ -549,7 +550,7 @@ echo Creating launcher [%Start_Mintty%]...
 ) >"%Start_Mintty%" || goto :fail
 
 :: https://stackoverflow.com/questions/9102422/windows-batch-set-inside-if-not-working
-set InstallImprovedSettings=%CYGWIN_ROOT%\cygwin-install-improved-settings.sh
+set "InstallImprovedSettings=%CYGWIN_ROOT%\cygwin-install-improved-settings.sh"
 if "%INSTALL_IMPROVED_USER_SETTINGS%" == "yes" (
     echo Creating launcher [%InstallImprovedSettings%]...
     (
@@ -575,7 +576,7 @@ if "%INSTALL_IMPROVED_USER_SETTINGS%" == "yes" (
 )
 
 echo CONEMU_CONFIG?
-set conemu_config=%INSTALL_ROOT%conemu\ConEmu.xml
+set "conemu_config=%INSTALL_ROOT%conemu\ConEmu.xml"
 if "%INSTALL_CONEMU%" == "yes" (
     (
         echo ^<?xml version="1.0" encoding="UTF-8"?^>
@@ -647,7 +648,7 @@ if "%INSTALL_CONEMU%" == "yes" (
     )> "%conemu_config%" || goto :fail
 )
 
-set Bashrc_sh=%CYGWIN_ROOT%\home\%CYGWIN_USERNAME%\.bashrc
+set "Bashrc_sh=%CYGWIN_ROOT%\home\%CYGWIN_USERNAME%\.bashrc"
 
 echo INSTALL_PAGEANT?
 if "%INSTALL_PAGEANT%" == "yes" (
