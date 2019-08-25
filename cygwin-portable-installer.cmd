@@ -46,13 +46,14 @@ set CYGWIN_MIRROR=http://linorg.usp.br/cygwin/
 :: if set to no, then, you need to set CYGWIN_USERNAME to your current computer user name.
 set CREATE_ROOT_USER=no
 
-:: one of: auto,64,32 - specifies if 32 or 64 bit version should be installed or automatically detected based on current OS architecture
-set CYGWIN_ARCH=auto
-
 :: choose a user name under Cygwin
 set CYGWIN_USERNAME=root
-set INSTALL_IMPROVED_USER_SETTINGS=yes
 if not "%CREATE_ROOT_USER%"=="yes" set "CYGWIN_USERNAME=%USERNAME%"
+
+:: one of: auto,64,32 - specifies if 32 or 64 bit version should be installed or automatically detected based on current OS architecture
+set CYGWIN_ARCH=auto
+set INSTALL_NODEJS=yes
+set INSTALL_IMPROVED_USER_SETTINGS=yes
 
 :: select the packages to be installed automatically via apt-cyg
 set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,git-svn,gnupg,inetutils,lz4,mc,nc,openssh,openssl,perl,pv,ssh-pageant,subversion,unzip,vim,wget,zip,zstd,python2,python3,python2-pip,python3-pip,graphviz,unison2.51,make,gcc-g++,ncdu,gdb,tree,psmisc,rsync
@@ -67,7 +68,7 @@ set INSTALL_APT_CYG=yes
 set INSTALL_BASH_FUNK=no
 
 :: if set to 'yes' Ansible (https://github.com/ansible/ansible) will be installed automatically
-set INSTALL_ANSIBLE=yes
+set INSTALL_ANSIBLE=no
 set ANSIBLE_GIT_BRANCH=stable-2.7
 
 :: if set to 'yes' AWS CLI (https://github.com/aws/aws-cli) will be installed automatically
@@ -354,22 +355,24 @@ echo Creating [%Init_sh%]...
         echo fi
         echo.
     )
-    if "%INSTALL_AWS_CLI%" == "yes" (
+    if "%INSTALL_NODEJS%" == "yes" (
         echo.
         echo #
-        echo # Installing AWS CLI if not yet installed
+        echo # Installing NodeJS if not yet installed
         echo #
-        echo if ! hash aws 2^>/dev/null; then
+        echo if [[ ! -x /opt/nodejs ]]; then
         echo     echo "*******************************************************************************"
-        echo     echo "* Installing [AWS CLI]..."
+        echo     echo "* Installing [NodeJS]..."
         echo     echo "*******************************************************************************"
-        echo     python -m ensurepip --default-pip
-        echo     # remove potential left-overs of previous installation
-        echo     rm -rf awscli-bundle.zip awscli-bundle /usr/bin/aws.cmd /usr/bin/aws /usr/local/aws /usr/local/bin/aws
-        echo     curl https://s3.amazonaws.com/aws-cli/awscli-bundle.zip -o awscli-bundle.zip
-        echo     unzip awscli-bundle.zip
-        echo     awscli-bundle/install -i /usr/local/aws -b /usr/local/bin/aws
-        echo     rm -rf awscli-bundle awscli-bundle.zip
+        echo     mkdir -p /opt/
+        echo     cd /opt/
+        echo     curl https://nodejs.org/dist/v10.16.3/node-v10.16.3-win-x64.zip -o nodejs.zip
+        echo     echo ""
+        echo     echo "Extracting NodeJS to '/opt/nodejs'..."
+        echo     unzip -q -d . nodejs.zip
+        echo     mv ./node-v10.16.3-win-x64 ./nodejs
+        echo     rm -rf nodejs.zip
+        echo     cd -
         echo fi
         echo.
     )
@@ -671,6 +674,17 @@ if not "%PROXY_HOST%" == "" (
         echo     export NO_PROXY=$no_proxy
         echo fi
     ) >>"%Bashrc_sh%" || goto :fail
+)
+
+echo INSTALL_NODEJS?
+if "%INSTALL_NODEJS%" == "yes" (
+    echo Adding NodeJS to PATH in [/home/%CYGWIN_USERNAME%/.bashrc]...
+    find "nodejs" "%Bashrc_sh%" >NUL || (
+        (
+            echo.
+            echo export PATH=$PATH:/opt/nodejs
+        ) >>"%Bashrc_sh%" || goto :fail
+    )
 )
 
 echo INSTALL_ANSIBLE?
