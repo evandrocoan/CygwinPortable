@@ -51,10 +51,11 @@ set CYGWIN_ARCH=auto
 
 :: choose a user name under Cygwin
 set CYGWIN_USERNAME=root
+set INSTALL_IMPROVED_USER_SETTINGS=yes
 if not "%CREATE_ROOT_USER%"=="yes" set "CYGWIN_USERNAME=%USERNAME%"
 
 :: select the packages to be installed automatically via apt-cyg
-set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,git-svn,gnupg,inetutils,lz4,mc,nc,openssh,openssl,perl,pv,ssh-pageant,subversion,unzip,vim,wget,zip,zstd,python2,python3,python2-pip,python3-pip,graphviz,unison2.51,make,gcc-g++,ncdu,gdb,tree,psmisc
+set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,git-svn,gnupg,inetutils,lz4,mc,nc,openssh,openssl,perl,pv,ssh-pageant,subversion,unzip,vim,wget,zip,zstd,python2,python3,python2-pip,python3-pip,graphviz,unison2.51,make,gcc-g++,ncdu,gdb,tree,psmisc,rsync
 
 :: if set to 'yes' the local package cache created by Cygwin setup will be deleted after installation/update
 set DELETE_CYGWIN_PACKAGE_CACHE=no
@@ -197,13 +198,17 @@ if "%INSTALL_APT_CYG%" == "yes" (
    set CYGWIN_PACKAGES=wget,ca-certificates,gnupg,%CYGWIN_PACKAGES%
 )
 
+if "%INSTALL_IMPROVED_USER_SETTINGS%" == "yes" (
+    set CYGWIN_PACKAGES=git,rsync,%CYGWIN_PACKAGES%
+)
+
 if "%INSTALL_ANSIBLE%" == "yes" (
     set CYGWIN_PACKAGES=git,openssh,python-jinja2,python-six,python-yaml,%CYGWIN_PACKAGES%
 )
 
 :: if conemu install is selected we need to be able to extract 7z archives, otherwise we need to install mintty
 if "%INSTALL_CONEMU%" == "yes" (
-    set CYGWIN_PACKAGES=bsdtar,%CYGWIN_PACKAGES%
+    set CYGWIN_PACKAGES=mintty,bsdtar,%CYGWIN_PACKAGES%
 ) else (
     set CYGWIN_PACKAGES=mintty,%CYGWIN_PACKAGES%
 )
@@ -230,8 +235,8 @@ if "%DELETE_CYGWIN_PACKAGE_CACHE%" == "yes" (
     rd /s /q "%CYGWIN_ROOT%\.pkg-cache"
 )
 
-:: set Updater_cmd=%INSTALL_ROOT%\cygwin-portable-updater.cmd
-set Updater_cmd=%CYGWIN_ROOT%\cygwin-portable-updater.cmd
+:: set Updater_cmd=%INSTALL_ROOT%\cygwin-updater.cmd
+set Updater_cmd=%CYGWIN_ROOT%\cygwin-updater.cmd
 echo Creating updater [%Updater_cmd%]...
 (
     echo @echo off
@@ -276,10 +281,10 @@ echo Creating updater [%Updater_cmd%]...
 set Cygwin_bat=%CYGWIN_ROOT%\Cygwin.bat
 if exist "%CYGWIN_ROOT%\Cygwin.bat" (
     echo Disabling default Cygwin launcher [%Cygwin_bat%]...
-    if exist "%Cygwin_bat%.disabled" (
-        del "%Cygwin_bat%.disabled" || goto :fail
+    if exist "%CYGWIN_ROOT%\cygwin-prompt.bat" (
+        del "%CYGWIN_ROOT%\cygwin-prompt.bat" || goto :fail
     )
-    rename %Cygwin_bat% Cygwin.bat.disabled || goto :fail
+    rename "%Cygwin_bat%" "cygwin-prompt.bat" || goto :fail
 )
 
 set Init_sh=%CYGWIN_ROOT%\portable-init.sh
@@ -299,7 +304,7 @@ echo Creating [%Init_sh%]...
     if %CREATE_ROOT_USER%=="yes" echo     echo $USERNAME:unused:1001:$GID:$USER_SID:$HOME:/bin/bash ^>^> /etc/passwd
     if %CREATE_ROOT_USER%=="yes" echo fi
     if %CREATE_ROOT_USER%=="yes" echo.
-    if %CREATE_ROOT_USER%=="yes" echo # already set in cygwin-portable.cmd:
+    if %CREATE_ROOT_USER%=="yes" echo # already set in cygwin-environment.cmd:
     if %CREATE_ROOT_USER%=="yes" echo # export CYGWIN_ROOT=$(cygpath -w /^)
     if %CREATE_ROOT_USER%=="yes" echo.
     if %CREATE_ROOT_USER%=="yes" echo #
@@ -314,6 +319,7 @@ echo Creating [%Init_sh%]...
         echo     export https_proxy=$http_proxy
         echo fi
     )
+    echo.
     if "%INSTALL_CONEMU%" == "yes" (
         echo #
         echo # Installing conemu if required
@@ -427,8 +433,8 @@ echo Creating [%Init_sh%]...
 ) >"%Init_sh%" || goto :fail
 "%CYGWIN_ROOT%\bin\dos2unix" "%Init_sh%" || goto :fail
 
-:: set Start_cmd=%INSTALL_ROOT%\cygwin-portable.cmd
-set Start_cmd=%CYGWIN_ROOT%\cygwin-portable.cmd
+:: set Start_cmd=%INSTALL_ROOT%\cygwin-environment.cmd
+set Start_cmd=%CYGWIN_ROOT%\cygwin-environment.cmd
 echo Creating launcher [%Start_cmd%]...
 (
     echo @echo on
@@ -458,7 +464,7 @@ echo Creating launcher [%Start_cmd%]...
     echo echo Replacing [/etc/fstab]...
     echo ^(
     echo     echo # /etc/fstab
-    echo     echo # IMPORTANT: this files is recreated on each start by cygwin-portable.cmd
+    echo     echo # IMPORTANT: this files is recreated on each start by cygwin-environment.cmd
     echo     echo #
     echo     echo #    This file is read once by the first process in a Cygwin process tree.
     echo     echo #    To pick up changes, restart all Cygwin processes.  For a description
@@ -504,7 +510,67 @@ echo Creating launcher [%Start_cmd%]...
 ) >"%Start_cmd%" || goto :fail
 
 :: launching Bash once to initialize user home dir
-call %Start_cmd% whoami
+call "%Start_cmd%" whoami
+
+:: set Start_Mintty=%INSTALL_ROOT%\cygwin-terminal.cmd
+set Start_Mintty=%CYGWIN_ROOT%\cygwin-terminal.cmd
+echo Creating launcher [%Start_Mintty%]...
+(
+    echo @echo on
+    echo setlocal enabledelayedexpansion
+    echo set CWD=%%cd%%
+    echo set CYGWIN_DRIVE=%%~d0
+    echo set CYGWIN_ROOT=%%~dp0
+    echo.
+    echo set USERNAME=%CYGWIN_USERNAME%
+    echo set HOME=/home/%%USERNAME%%
+    echo set SHELL=/bin/bash
+    echo set HOMEDRIVE=%%CYGWIN_DRIVE%%
+    echo set HOMEPATH=%%CYGWIN_ROOT%%\home\%%USERNAME%%
+    echo set GROUP=None
+    echo set GRP=
+    echo.
+    echo %%CYGWIN_DRIVE%%
+    echo chdir "%%CYGWIN_ROOT%%\bin"
+    echo.
+    echo if "%%1" == "" (
+    echo   mintty --nopin %MINTTY_OPTIONS% --icon %CYGWIN_ROOT%\Cygwin-Terminal.ico -
+    echo ^) else (
+    echo   if "%%1" == "no-mintty" (
+    echo     bash --login -i
+    echo   ^) else (
+    echo     bash --login -c %%*
+    echo   ^)
+    echo ^)
+    echo.
+    echo cd "%%CWD%%"
+) >"%Start_Mintty%" || goto :fail
+
+:: https://stackoverflow.com/questions/9102422/windows-batch-set-inside-if-not-working
+set InstallImprovedSettings=%CYGWIN_ROOT%\cygwin-install-improved-settings.sh
+if "%INSTALL_IMPROVED_USER_SETTINGS%" == "yes" (
+    echo Creating launcher [%InstallImprovedSettings%]...
+    (
+        echo #
+        echo # Installing improved user settings
+        echo #
+        echo echo "*******************************************************************************"
+        echo echo "* Installing [improved user settings]..."
+        echo echo "*******************************************************************************"
+        echo /bin/git --version
+        echo /bin/git clone https://github.com/evandrocoan/MyLinuxSettings --single-branch --depth 1 --shallow-submodules "/home/%CYGWIN_USERNAME%/Downloads/MyLinuxSettings"
+        echo /bin/rsync -r -t -v -s "/home/%CYGWIN_USERNAME%/Downloads/MyLinuxSettings/" "/home/%CYGWIN_USERNAME%/"
+        echo.
+    ) >"%InstallImprovedSettings%" || goto :fail
+    "%CYGWIN_ROOT%\bin\dos2unix" "%InstallImprovedSettings%" || goto :fail
+
+    FOR /F "tokens=* USEBACKQ" %%F IN (`cygpath -u "%InstallImprovedSettings%"`) DO (
+    SET InstallImprovedSettingsUnix=%%F
+    )
+
+    "%CYGWIN_ROOT%\bin\bash" "%InstallImprovedSettings%"
+    "%CYGWIN_ROOT%\bin\rm" -f "%InstallImprovedSettings%"
+)
 
 echo CONEMU_CONFIG?
 set conemu_config=%INSTALL_ROOT%conemu\ConEmu.xml
@@ -613,7 +679,6 @@ if "%INSTALL_ANSIBLE%" == "yes" (
     find "ansible" "%Bashrc_sh%" >NUL || (
         (
             echo.
-            echo export PYTHONHOME=/usr/ PYTHONPATH=/usr/lib/python2.7 # workaround for "ImportError: No module named site" when Python for Windows is installed too
             echo export PYTHONPATH=$PYTHONPATH:/opt/ansible/lib
             echo export PATH=$PATH:/opt/ansible/bin
         ) >>"%Bashrc_sh%" || goto :fail
