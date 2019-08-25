@@ -1,18 +1,7 @@
 @echo on
 ::
-:: Copyright 2017-2018 by Vegard IT GmbH, Germany, https://vegardit.com
-::
-:: Licensed under the Apache License, Version 2.0 (the "License");
-:: you may not use this file except in compliance with the License.
-:: You may obtain a copy of the License at
-::
-::      http://www.apache.org/licenses/LICENSE-2.0
-::
-:: Unless required by applicable law or agreed to in writing, software
-:: distributed under the License is distributed on an "AS IS" BASIS,
-:: WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-:: See the License for the specific language governing permissions and
-:: limitations under the License.
+:: Copyright 2017-2019 by Vegard IT GmbH (https://vegardit.com) and the cygwin-portable-installer contributors.
+:: SPDX-License-Identifier: Apache-2.0
 ::
 :: @author Sebastian Thomschke, Vegard IT GmbH
 
@@ -56,7 +45,7 @@ set INSTALL_NODEJS=yes
 set INSTALL_IMPROVED_USER_SETTINGS=yes
 
 :: select the packages to be installed automatically via apt-cyg
-set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,git-svn,gnupg,inetutils,lz4,mc,nc,openssh,openssl,perl,pv,ssh-pageant,subversion,unzip,vim,wget,zip,zstd,python2,python3,python2-pip,python3-pip,graphviz,unison2.51,make,gcc-g++,ncdu,gdb,tree,psmisc,rsync
+set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,git-svn,gnupg,inetutils,lz4,mc,nc,openssh,openssl,perl,pv,screen,subversion,unzip,vim,wget,zip,zstd,python2,python3,python2-pip,python3-pip,graphviz,unison2.51,make,gcc-g++,ncdu,gdb,tree,psmisc,rsync
 
 :: if set to 'yes' the local package cache created by Cygwin setup will be deleted after installation/update
 set DELETE_CYGWIN_PACKAGE_CACHE=no
@@ -73,6 +62,12 @@ set ANSIBLE_GIT_BRANCH=stable-2.7
 
 :: if set to 'yes' AWS CLI (https://github.com/aws/aws-cli) will be installed automatically
 set INSTALL_AWS_CLI=no
+
+:: if set to 'yes' SSH Memory Keys Passphrase Cache (https://github.com/cuviper/ssh-pageant) will be installed automatically
+set INSTALL_PAGEANT=no
+
+:: https://georgik.rocks/how-to-fix-incorrect-cygwin-permission-inwindows-7/
+set DISABLE_WINDOWS_ACL_HANDLING=no
 
 :: if set to 'yes' testssl.sh (https://testssl.sh/) will be installed automatically
 set INSTALL_TESTSSL_SH=yes
@@ -199,6 +194,10 @@ if "%INSTALL_APT_CYG%" == "yes" (
    set CYGWIN_PACKAGES=wget,ca-certificates,gnupg,%CYGWIN_PACKAGES%
 )
 
+if "%INSTALL_PAGEANT%" == "yes" (
+   set CYGWIN_PACKAGES=ssh-pageant,%CYGWIN_PACKAGES%
+)
+
 if "%INSTALL_IMPROVED_USER_SETTINGS%" == "yes" (
     set CYGWIN_PACKAGES=git,rsync,%CYGWIN_PACKAGES%
 )
@@ -293,29 +292,31 @@ echo Creating [%Init_sh%]...
 (
     echo #!/usr/bin/env bash
     echo.
-    if %CREATE_ROOT_USER%=="yes" echo #
-    if %CREATE_ROOT_USER%=="yes" echo # Map Current Windows User to root user
-    if %CREATE_ROOT_USER%=="yes" echo #
-    if %CREATE_ROOT_USER%=="yes" echo.
-    if %CREATE_ROOT_USER%=="yes" echo # Check if current Windows user is in /etc/passwd
-    if %CREATE_ROOT_USER%=="yes" echo USER_SID="$(mkpasswd -c | cut -d':' -f 5)"
-    if %CREATE_ROOT_USER%=="yes" echo if ! grep -F "$USER_SID" /etc/passwd ^&^>/dev/null; then
-    if %CREATE_ROOT_USER%=="yes" echo     echo "Mapping Windows user '$USER_SID' to Cygwin '$USERNAME' in /etc/passwd..."
-    if %CREATE_ROOT_USER%=="yes" echo     GID="$(mkpasswd -c | cut -d':' -f 4)"
-    if %CREATE_ROOT_USER%=="yes" echo     echo $USERNAME:unused:1001:$GID:$USER_SID:$HOME:/bin/bash ^>^> /etc/passwd
-    if %CREATE_ROOT_USER%=="yes" echo fi
-    if %CREATE_ROOT_USER%=="yes" echo.
-    if %CREATE_ROOT_USER%=="yes" echo # already set in cygwin-environment.cmd:
-    if %CREATE_ROOT_USER%=="yes" echo # export CYGWIN_ROOT=$(cygpath -w /^)
-    if %CREATE_ROOT_USER%=="yes" echo.
-    if %CREATE_ROOT_USER%=="yes" echo #
-    if %CREATE_ROOT_USER%=="yes" echo # adjust Cygwin packages cache path
-    if %CREATE_ROOT_USER%=="yes" echo #
-    if %CREATE_ROOT_USER%=="yes" echo pkg_cache_dir=$(cygpath -w "$CYGWIN_ROOT/../cygwin-pkg-cache"^)
-    if %CREATE_ROOT_USER%=="yes" echo sed -i -E "s/.*\\\cygwin-pkg-cache/"$'\t'"${pkg_cache_dir//\\/\\\\}/" /etc/setup/setup.rc
-    if %CREATE_ROOT_USER%=="yes" echo.
+    if "%CREATE_ROOT_USER%"=="yes" (
+        echo #
+        echo # Map Current Windows User to root user
+        echo #
+        echo.
+        echo # Check if current Windows user is in /etc/passwd
+        echo USER_SID="$(mkpasswd -c | cut -d':' -f 5)"
+        echo if ! grep -F "$USER_SID" /etc/passwd ^&^>/dev/null; then
+        echo     echo "Mapping Windows user '$USER_SID' to Cygwin '$USERNAME' in /etc/passwd..."
+        echo     GID="$(mkpasswd -c | cut -d':' -f 4)"
+        echo     echo $USERNAME:unused:1001:$GID:$USER_SID:$HOME:/bin/bash ^>^> /etc/passwd
+        echo fi
+        echo.
+        echo # already set in cygwin-environment.cmd:
+        echo # export CYGWIN_ROOT=$(cygpath -w /^)
+        echo.
+        echo #
+        echo # adjust Cygwin packages cache path
+        echo #
+        echo pkg_cache_dir=$(cygpath -w "$CYGWIN_ROOT/.pkg-cache"^)
+        echo sed -i -E "s/.*\\\.pkg-cache/"$'\t'"${pkg_cache_dir//\\/\\\\}/" /etc/setup/setup.rc
+        echo.
+    )
     if not "%PROXY_HOST%" == "" (
-        echo if [[ $HOSTNAME == "%COMPUTERNAME%" ]]; then
+        echo if [[ "$HOSTNAME" == "%COMPUTERNAME%" ]]; then
         echo     export http_proxy=http://%PROXY_HOST%:%PROXY_PORT%
         echo     export https_proxy=$http_proxy
         echo fi
@@ -464,29 +465,27 @@ echo Creating launcher [%Start_cmd%]...
     echo set GROUP=None
     echo set GRP=
     echo.
-    echo echo Replacing [/etc/fstab]...
-    echo ^(
-    echo     echo # /etc/fstab
-    echo     echo # IMPORTANT: this files is recreated on each start by cygwin-environment.cmd
-    echo     echo #
-    echo     echo #    This file is read once by the first process in a Cygwin process tree.
-    echo     echo #    To pick up changes, restart all Cygwin processes.  For a description
-    echo     echo #    see https://cygwin.com/cygwin-ug-net/using.html#mount-table
-    echo     echo.
-    if %CREATE_ROOT_USER%=="yes" echo     echo %%CYGWIN_ROOT%%/bin  /usr/bin ntfs binary,auto,noacl           0  0
-    if %CREATE_ROOT_USER%=="yes" echo     echo %%CYGWIN_ROOT%%/lib  /usr/lib ntfs binary,auto,noacl           0  0
-    if %CREATE_ROOT_USER%=="yes" echo     echo %%CYGWIN_ROOT%%      /        ntfs override,binary,auto,noacl  0  0
-    echo     echo.
-    echo     echo # This is default anyway:
-    echo     echo # none /cygdrive cygdrive binary,posix=0,user 0 0
-    echo     echo.
-    echo     echo # https://georgik.rocks/how-to-fix-incorrect-cygwin-permission-inwindows-7/
-    echo     echo # noacl = disable Cygwin's - apparently broken - special ACL treatment which prevents apt-cyg and other programs from working
-    echo     echo none /cygdrive cygdrive binary,noacl,posix=0,user 0 0
-    echo     echo.
-    if %CREATE_ROOT_USER%=="yes" echo ^) ^> %%CYGWIN_ROOT%%\etc\fstab
-    if %CREATE_ROOT_USER%=="yes" echo .
-    if NOT %CREATE_ROOT_USER%=="yes" echo ^)
+    echo echo DISABLE_WINDOWS_ACL_HANDLING? %DISABLE_WINDOWS_ACL_HANDLING%
+    echo if "%DISABLE_WINDOWS_ACL_HANDLING%"=="yes" ^(
+    echo      echo Replacing [/etc/fstab]...
+    echo      ^(
+    echo          echo # /etc/fstab
+    echo          echo # IMPORTANT: this files is recreated on each start by cygwin-environment.cmd
+    echo          echo #
+    echo          echo #    This file is read once by the first process in a Cygwin process tree.
+    echo          echo #    To pick up changes, restart all Cygwin processes.  For a description
+    echo          echo #    see https://cygwin.com/cygwin-ug-net/using.html#mount-table
+    echo          echo.
+    echo          echo # This is default anyway:
+    echo          echo # none /cygdrive cygdrive binary,posix=0,user 0 0
+    echo          echo.
+    echo          echo # https://georgik.rocks/how-to-fix-incorrect-cygwin-permission-inwindows-7/
+    echo          echo # noacl = disable Cygwin's - apparently broken - special ACL treatment which prevents apt-cyg and other programs from working
+    echo          echo none /cygdrive cygdrive binary,noacl,posix=0,user 0 0
+    echo          echo.
+    echo      ^) ^> "%%CYGWIN_ROOT%%\etc\fstab"
+    echo ^)
+    echo.
     echo %%CYGWIN_DRIVE%%
     echo chdir "%%CYGWIN_ROOT%%\bin"
     echo bash "%%CYGWIN_ROOT%%\portable-init.sh"
@@ -494,9 +493,9 @@ echo Creating launcher [%Start_cmd%]...
     echo if "%%1" == "" (
     if "%INSTALL_CONEMU%" == "yes" (
         if "%CYGWIN_ARCH%" == "64" (
-            echo   start %%~dp0conemu\ConEmu64.exe %CON_EMU_OPTIONS%
+            echo   start "" "%%~dp0conemu\ConEmu64.exe" %CON_EMU_OPTIONS%
         ) else (
-            echo   start %%~dp0conemu\ConEmu.exe %CON_EMU_OPTIONS%
+            echo   start "" "%%~dp0conemu\ConEmu.exe" %CON_EMU_OPTIONS%
         )
     ) else (
         echo   mintty --nopin %MINTTY_OPTIONS% --icon %CYGWIN_ROOT%\Cygwin-Terminal.ico -
@@ -650,8 +649,8 @@ if "%INSTALL_CONEMU%" == "yes" (
 
 set Bashrc_sh=%CYGWIN_ROOT%\home\%CYGWIN_USERNAME%\.bashrc
 
-echo CYGWIN_PACKAGES?
-if not "%CYGWIN_PACKAGES%" == "%CYGWIN_PACKAGES:ssh-pageant=%" (
+echo INSTALL_PAGEANT?
+if "%INSTALL_PAGEANT%" == "yes" (
     :: https://github.com/cuviper/ssh-pageant
     echo Adding ssh-pageant to [/home/%CYGWIN_USERNAME%/.bashrc]...
     find "ssh-pageant" "%Bashrc_sh%" >NUL || (
@@ -665,7 +664,7 @@ if not "%PROXY_HOST%" == "" (
     echo Adding proxy settings for host [%COMPUTERNAME%] to [/home/%CYGWIN_USERNAME%/.bashrc]...
     find "export http_proxy" "%Bashrc_sh%" >NUL || (
         echo.
-        echo if [[ $HOSTNAME == "%COMPUTERNAME%" ]]; then
+        echo if [[ "$HOSTNAME" == "%COMPUTERNAME%" ]]; then
         echo     export http_proxy=http://%PROXY_HOST%:%PROXY_PORT%
         echo     export https_proxy=$http_proxy
         echo     export no_proxy="::1,127.0.0.1,localhost,169.254.169.254,%COMPUTERNAME%,*.%USERDNSDOMAIN%"
