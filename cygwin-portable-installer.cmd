@@ -116,9 +116,13 @@ echo # Installing [Cygwin Portable]...
 echo ###########################################################
 echo.
 
+set CYGWIN_DRIVE=%~d0
 set INSTALL_ROOT=%~dp0
-
 set CYGWIN_ROOT=%INSTALL_ROOT%Cygwin
+
+:: Avoid conflicts with another Cygwin installation already on the system path
+set PATH=%SystemRoot%\system32;%SystemRoot%;%CYGWIN_ROOT%\bin;%ADB_PATH%
+
 echo Creating Cygwin root [%CYGWIN_ROOT%]...
 if not exist "%CYGWIN_ROOT%" (
     md "%CYGWIN_ROOT%"
