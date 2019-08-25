@@ -646,7 +646,12 @@ echo ###########################################################
 echo.
 echo Use [%Start_cmd%] to launch Cygwin Portable.
 echo.
-timeout /T 60
+
+:typeitright1
+:: timeout /T 60
+set /p "UserInputPath=Type 'exit' to quit... "
+if not "%UserInputPath%" == "exit" goto typeitright1
+
 :: Exit the batch file, without closing the cmd.exe, if called from another script
 goto :eof
 
@@ -659,5 +664,9 @@ goto :eof
     echo # Installing [Cygwin Portable] FAILED!
     echo ###########################################################
     echo.
-    timeout /T 60
+
+    :typeitright2
+    :: timeout /T 60
+    set /p "UserInputPath=Type 'exit' to quit... "
+    if not "%UserInputPath%" == "exit" goto typeitright2
     exit /b 1
