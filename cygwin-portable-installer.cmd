@@ -265,7 +265,7 @@ echo Creating updater [%Updater_cmd%]...
     echo.
     echo echo DELETE_CYGWIN_PACKAGE_CACHE? '%DELETE_CYGWIN_PACKAGE_CACHE%'
     echo if "%DELETE_CYGWIN_PACKAGE_CACHE%" == "yes" ^(
-    echo     rd /s /q "%%CYGWIN_ROOT%%\.pkg-cache"
+    echo     rd /s /q "%%CYGWIN_ROOT%%\.pkg-cache" ^|^| goto :fail
     echo ^)
     echo echo.
     echo echo ###########################################################
@@ -280,9 +280,9 @@ echo Creating updater [%Updater_cmd%]...
     echo.
     echo :: Exit the batch file, without closing the cmd.exe, if called from another script
     echo goto :eof
-    echo echo.
     echo.
     echo :fail
+    echo echo.
     echo echo ###########################################################
     echo echo # Updating [Cygwin Portable] FAILED!
     echo echo ###########################################################
@@ -311,17 +311,24 @@ echo Creating [%Init_sh%]...
 (
     echo #!/usr/bin/env bash
     echo.
+    echo function handle_exception^(^) {
+    echo     printf "\\n"
+    echo     printf "There was some exception while running this script!\\n"
+    echo     printf "Check/revise the error messages and decide if it is safe to continue.\\n"
+    echo     read -p "If it is safe, press 'Enter' to continue... Otherwise close this terminal window!" variable1
+    echo }
+    echo.
     echo # CREATE_ROOT_USER? '%CREATE_ROOT_USER%'
     echo if [[ "w%CREATE_ROOT_USER%" == "wyes" ]]; then
     echo     #
     echo     # Map Current Windows User to root user
     echo     #
     echo     # Check if current Windows user is in /etc/passwd
-    echo     USER_SID="$(mkpasswd -c | cut -d':' -f 5)"
+    echo     USER_SID="$(mkpasswd -c | cut -d':' -f 5)" ^|^| handle_exception
     echo.
     echo     if ! grep -F "$USER_SID" /etc/passwd ^&^>/dev/null; then
     echo         echo "Mapping Windows user '$USER_SID' to Cygwin '$USERNAME' in /etc/passwd..."
-    echo         GID="$(mkpasswd -c | cut -d':' -f 4)"
+    echo         GID="$(mkpasswd -c | cut -d':' -f 4)" ^|^| handle_exception
     echo         echo $USERNAME:unused:1001:$GID:$USER_SID:$HOME:/bin/bash ^>^> /etc/passwd
     echo     fi
     echo.
@@ -331,8 +338,8 @@ echo Creating [%Init_sh%]...
     echo     #
     echo     # adjust Cygwin packages cache path
     echo     #
-    echo     pkg_cache_dir=$(cygpath -w "$CYGWIN_ROOT/.pkg-cache"^)
-    echo     sed -i -E "s/.*\\\.pkg-cache/"$'\t'"${pkg_cache_dir//\\/\\\\}/" /etc/setup/setup.rc
+    echo     pkg_cache_dir=$(cygpath -w "$CYGWIN_ROOT/.pkg-cache"^) ^|^| handle_exception
+    echo     sed -i -E "s/.*\\\.pkg-cache/"$'\t'"${pkg_cache_dir//\\/\\\\}/" /etc/setup/setup.rc ^|^| handle_exception
     echo fi
     echo.
     echo # PROXY_HOST? '%PROXY_HOST%'
@@ -348,7 +355,8 @@ echo Creating [%Init_sh%]...
     echo     #
     echo     # Installing conemu if required
     echo     #
-    echo     conemu_dir=$(cygpath -w "$CYGWIN_ROOT/../conemu"^)
+    echo     conemu_dir=$(cygpath -w "$CYGWIN_ROOT/../conemu"^) ^|^| handle_exception
+    echo.
     echo     if [[ ! -e $conemu_dir ]]; then
     echo         echo "*******************************************************************************"
     echo         echo "* Installing ConEmu..."
@@ -357,10 +365,9 @@ echo Creating [%Init_sh%]...
     echo         conemu_url="https://github.com$(wget https://github.com/Maximus5/ConEmu/releases/latest -O - 2>/dev/null | egrep '/.*/releases/download/.*/.*7z' -o)" ^&^& \
     echo         echo "Download URL=$conemu_url" ^&^& \
     echo         wget -O "${conemu_dir}.7z" $conemu_url ^&^& \
-    echo.
     echo         mkdir "$conemu_dir" ^&^& \
     echo         bsdtar -xvf "${conemu_dir}.7z" -C "$conemu_dir" ^&^& \
-    echo         rm "${conemu_dir}.7z"
+    echo         rm "${conemu_dir}.7z" ^|^| handle_exception
     echo     fi
     echo fi
     echo.
@@ -379,7 +386,7 @@ echo Creating [%Init_sh%]...
     echo         echo "* Installing [Ansible - %ANSIBLE_GIT_BRANCH%]..."
     echo         echo "*******************************************************************************"
     echo.
-    echo         git clone https://github.com/ansible/ansible --branch %ANSIBLE_GIT_BRANCH% --single-branch --depth 1 --shallow-submodules /opt/ansible
+    echo         git clone https://github.com/ansible/ansible --branch %ANSIBLE_GIT_BRANCH% --single-branch --depth 1 --shallow-submodules /opt/ansible ^|^| handle_exception
     echo     fi
     echo fi
     echo.
@@ -395,14 +402,14 @@ echo Creating [%Init_sh%]...
     echo.
     echo         mkdir -p /opt/
     echo         cd /opt/
-    echo         curl https://nodejs.org/dist/v10.16.3/node-v10.16.3-win-x64.zip -o nodejs.zip
+    echo         curl https://nodejs.org/dist/v10.16.3/node-v10.16.3-win-x64.zip -o nodejs.zip ^|^| handle_exception
     echo.
     echo         echo ""
     echo         echo "Extracting NodeJS to '/opt/nodejs'..."
-    echo         unzip -q -d . nodejs.zip
-    echo         mv ./node-v10.16.3-win-x64 ./nodejs
-    echo         rm -rf nodejs.zip
-    echo         cd -
+    echo         unzip -q -d . nodejs.zip ^|^| handle_exception
+    echo         mv ./node-v10.16.3-win-x64 ./nodejs ^|^| handle_exception
+    echo         rm -rf nodejs.zip ^|^| handle_exception
+    echo         cd - ^|^| handle_exception
     echo     fi
     echo fi
     echo.
@@ -416,8 +423,8 @@ echo Creating [%Init_sh%]...
     echo         echo "* Installing apt-cyg..."
     echo         echo "*******************************************************************************"
     echo.
-    echo         wget -O /usr/local/bin/apt-cyg https://raw.githubusercontent.com/kou1okada/apt-cyg/master/apt-cyg
-    echo         chmod +x /usr/local/bin/apt-cyg
+    echo         wget -O /usr/local/bin/apt-cyg https://raw.githubusercontent.com/kou1okada/apt-cyg/master/apt-cyg ^|^| handle_exception
+    echo         chmod +x /usr/local/bin/apt-cyg ^|^| handle_exception
     echo     fi
     echo fi
     echo.
@@ -426,7 +433,9 @@ echo Creating [%Init_sh%]...
     echo     #
     echo     # Installing bash-funk if not yet installed
     echo     #
-    echo     if [[ ! -e /opt ]]; then mkdir /opt; fi
+    echo     if [[ ! -e /opt ]]; then
+    echo          mkdir /opt ^|^| handle_exception
+    echo     fi
     echo.
     echo     if [[ ! -e /opt/bash-funk/bash-funk.sh ]]; then
     echo         echo "*******************************************************************************"
@@ -434,13 +443,13 @@ echo Creating [%Init_sh%]...
     echo         echo "*******************************************************************************"
     echo.
     echo         if hash git ^&^>/dev/null; then
-    echo             git clone https://github.com/vegardit/bash-funk --branch master --single-branch --depth 1 --shallow-submodules /opt/bash-funk
+    echo             git clone https://github.com/vegardit/bash-funk --branch master --single-branch --depth 1 --shallow-submodules /opt/bash-funk ^|^| handle_exception
     echo         elif hash svn ^&^>/dev/null; then
-    echo             svn checkout https://github.com/vegardit/bash-funk/trunk /opt/bash-funk
+    echo             svn checkout https://github.com/vegardit/bash-funk/trunk /opt/bash-funk ^|^| handle_exception
     echo         else
     echo             mkdir /opt/bash-funk ^&^& \
     echo             cd /opt/bash-funk ^&^& \
-    echo             wget -qO- --show-progress https://github.com/vegardit/bash-funk/tarball/master ^| tar -xzv --strip-components 1
+    echo             wget -qO- --show-progress https://github.com/vegardit/bash-funk/tarball/master ^| tar -xzv --strip-components 1 ^|^| handle_exception
     echo         fi
     echo     fi
     echo fi
@@ -450,7 +459,9 @@ echo Creating [%Init_sh%]...
     echo     #
     echo     # Installing testssl.sh if not yet installed
     echo     #
-    echo     if [[ ! -e /opt ]]; then mkdir /opt; fi
+    echo     if [[ ! -e /opt ]]; then
+    echo          mkdir /opt ^|^| handle_exception
+    echo     fi
     echo.
     echo     if [[ ! -e /opt/testssl/testssl.sh ]]; then
     echo         echo "*******************************************************************************"
@@ -458,15 +469,15 @@ echo Creating [%Init_sh%]...
     echo         echo "*******************************************************************************"
     echo.
     echo         if hash git ^&^>/dev/null; then
-    echo             git clone https://github.com/drwetter/testssl.sh --branch %TESTSSL_GIT_BRANCH% --single-branch --depth 1 --shallow-submodules /opt/testssl
+    echo             git clone https://github.com/drwetter/testssl.sh --branch %TESTSSL_GIT_BRANCH% --single-branch --depth 1 --shallow-submodules /opt/testssl ^|^| handle_exception
     echo         elif hash svn ^&^>/dev/null; then
-    echo             svn checkout https://github.com/drwetter/testssl.sh/branches/%TESTSSL_GIT_BRANCH% /opt/testssl
+    echo             svn checkout https://github.com/drwetter/testssl.sh/branches/%TESTSSL_GIT_BRANCH% /opt/testssl ^|^| handle_exception
     echo         else
     echo             mkdir /opt/testssl ^&^& \
     echo             cd /opt/testssl ^&^& \
-    echo             wget -qO- --show-progress https://github.com/drwetter/testssl.sh/tarball/%TESTSSL_GIT_BRANCH% ^| tar -xzv --strip-components 1
+    echo             wget -qO- --show-progress https://github.com/drwetter/testssl.sh/tarball/%TESTSSL_GIT_BRANCH% ^| tar -xzv --strip-components 1 ^|^| handle_exception
     echo         fi
-    echo         chmod +x /opt/testssl/testssl.sh
+    echo         chmod +x /opt/testssl/testssl.sh ^|^| handle_exception
     echo     fi
     echo fi
 
@@ -519,33 +530,41 @@ echo Creating launcher [%Start_cmd%]...
     echo          echo # noacl = disable Cygwin's - apparently broken - special ACL treatment which prevents apt-cyg and other programs from working
     echo          echo none /cygdrive cygdrive binary,noacl,posix=0,user 0 0
     echo          echo.
-    echo      ^) ^> "%%CYGWIN_ROOT%%\etc\fstab"
+    echo      ^) ^> "%%CYGWIN_ROOT%%\etc\fstab" ^|^| goto :fail
     echo ^)
     echo.
     echo %%CYGWIN_DRIVE%%
-    echo chdir "%%CYGWIN_ROOT%%\bin"
-    echo bash "%%CYGWIN_ROOT%%\portable-init.sh"
+    echo chdir "%%CYGWIN_ROOT%%\bin" ^|^| goto :fail
+    echo bash "%%CYGWIN_ROOT%%\portable-init.sh" ^|^| goto :fail
     echo.
     echo if "%%1" == "" (
     if "%INSTALL_CONEMU%" == "yes" (
         if "%CYGWIN_ARCH%" == "64" (
             echo rem https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
-            echo   start "" "%%~dp0.\conemu\ConEmu64.exe" %CON_EMU_OPTIONS%
+            echo   start "" "%%~dp0.\conemu\ConEmu64.exe" %CON_EMU_OPTIONS% ^|^| goto :fail
         ) else (
-            echo   start "" "%%~dp0.\conemu\ConEmu.exe" %CON_EMU_OPTIONS%
+            echo   start "" "%%~dp0.\conemu\ConEmu.exe" %CON_EMU_OPTIONS% ^|^| goto :fail
         )
     ) else (
-        echo   mintty --nopin %MINTTY_OPTIONS% --icon %%CYGWIN_ROOT%%\Cygwin-Terminal.ico -
+        echo   mintty --nopin %MINTTY_OPTIONS% --icon %%CYGWIN_ROOT%%\Cygwin-Terminal.ico - ^|^| goto :fail
     )
     echo ^) else (
     echo   if "%%1" == "no-mintty" (
-    echo     bash --login -i
+    echo     bash --login -i ^|^| goto :fail
     echo   ^) else (
-    echo     bash --login -c %%*
+    echo     bash --login -c %%* ^|^| goto :fail
     echo   ^)
     echo ^)
     echo.
-    echo cd "%%CWD%%"
+    echo cd "%%CWD%%" ^|^| goto :fail
+    echo.
+    echo :: Exit the batch file, without closing the cmd.exe, if called from another script
+    echo goto :eof
+    echo.
+    echo :fail
+    echo rem timeout /T 60
+    echo set /p "UserInputPath=Type 'exit' to quit... "
+    echo if not "%UserInputPath%" == "exit" goto fail
 ) >"%Start_cmd%" || goto :fail
 
 :: launching Bash once to initialize user home dir
@@ -571,19 +590,27 @@ echo Creating launcher [%Start_Mintty%]...
     echo set "GRP="
     echo.
     echo %%CYGWIN_DRIVE%%
-    echo chdir "%%CYGWIN_ROOT%%\bin"
+    echo chdir "%%CYGWIN_ROOT%%\bin" ^|^| goto :fail
     echo.
     echo if "%%1" == "" (
-    echo   mintty --nopin %MINTTY_OPTIONS% --icon %%CYGWIN_ROOT%%\Cygwin-Terminal.ico -
+    echo   mintty --nopin %MINTTY_OPTIONS% --icon %%CYGWIN_ROOT%%\Cygwin-Terminal.ico - ^|^| goto :fail
     echo ^) else (
     echo   if "%%1" == "no-mintty" (
-    echo     bash --login -i
+    echo     bash --login -i ^|^| goto :fail
     echo   ^) else (
-    echo     bash --login -c %%*
+    echo     bash --login -c %%* ^|^| goto :fail
     echo   ^)
     echo ^)
     echo.
-    echo cd "%%CWD%%"
+    echo cd "%%CWD%%" ^|^| goto :fail
+    echo.
+    echo :: Exit the batch file, without closing the cmd.exe, if called from another script
+    echo goto :eof
+    echo.
+    echo :fail
+    echo rem timeout /T 60
+    echo set /p "UserInputPath=Type 'exit' to quit... "
+    echo if not "%UserInputPath%" == "exit" goto fail
 ) >"%Start_Mintty%" || goto :fail
 
 :: https://stackoverflow.com/questions/9102422/windows-batch-set-inside-if-not-working
