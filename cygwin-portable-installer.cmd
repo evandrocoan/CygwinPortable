@@ -116,7 +116,7 @@ echo.
 :: Avoid conflicts with another Cygwin installation already on the system path
 :: https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
 set "CYGWIN_DRIVE=%~d0"
-set "INSTALL_ROOT=%~dp0."
+set "INSTALL_ROOT=%~dp0.\PortableCygwin"
 set "CYGWIN_ROOT=%INSTALL_ROOT%\Cygwin"
 set "PATH=%SystemRoot%\system32;%SystemRoot%;%CYGWIN_ROOT%\bin;%ADB_PATH%"
 
@@ -236,22 +236,24 @@ if "%DELETE_CYGWIN_PACKAGE_CACHE%" == "yes" (
     rd /s /q "%CYGWIN_ROOT%\.pkg-cache" || goto :fail
 )
 
-:: set "Updater_cmd=%INSTALL_ROOT%\cygwin-updater.cmd"
-set "Updater_cmd=%CYGWIN_ROOT%\cygwin-updater.cmd"
+set "Updater_cmd=%INSTALL_ROOT%\cygwin-updater.cmd"
 echo Creating updater [%Updater_cmd%]...
 (
     echo @echo off
     echo rem https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
-    echo rem echo set "CYGWIN_ROOT=%%~dp0.\Cygwin"
-    echo set "CYGWIN_ROOT=%%~dp0."
-    echo echo.
+    echo set "CYGWIN_ROOT=%%~dp0.\Cygwin"
+    echo set "CYGWIN_PROXY=%CYGWIN_PROXY%"
     echo.
+    echo rem change the URL to the closest mirror https://cygwin.com/mirrors.html
+    echo set CYGWIN_MIRROR=%CYGWIN_MIRROR%
+    echo.
+    echo echo.
     echo echo ###########################################################
     echo echo # Updating [Cygwin Portable]...
     echo echo ###########################################################
     echo echo.
     echo "%%CYGWIN_ROOT%%\%CYGWIN_SETUP%" --no-admin ^^
-    echo --site %CYGWIN_MIRROR% %CYGWIN_PROXY% ^^
+    echo --site %%CYGWIN_MIRROR%% %%CYGWIN_PROXY%% ^^
     echo --root "%%CYGWIN_ROOT%%" ^^
     echo --local-package-dir "%%CYGWIN_ROOT%%\.pkg-cache" ^^
     echo --no-shortcuts ^^
@@ -261,7 +263,7 @@ echo Creating updater [%Updater_cmd%]...
     echo --no-replaceonreboot ^^
     echo --quiet-mode ^|^| goto :fail
     echo.
-    echo DELETE_CYGWIN_PACKAGE_CACHE? '%DELETE_CYGWIN_PACKAGE_CACHE%'
+    echo echo DELETE_CYGWIN_PACKAGE_CACHE? '%DELETE_CYGWIN_PACKAGE_CACHE%'
     echo if "%DELETE_CYGWIN_PACKAGE_CACHE%" == "yes" ^(
     echo     rd /s /q "%%CYGWIN_ROOT%%\.pkg-cache"
     echo ^)
@@ -472,8 +474,7 @@ echo Creating [%Init_sh%]...
 
 "%CYGWIN_ROOT%\bin\dos2unix" "%Init_sh%" || goto :fail
 
-:: set "Start_cmd=%INSTALL_ROOT%\cygwin-environment.cmd"
-set "Start_cmd=%CYGWIN_ROOT%\cygwin-environment.cmd"
+set "Start_cmd=%INSTALL_ROOT%\cygwin-environment.cmd"
 echo Creating launcher [%Start_cmd%]...
 (
     echo @echo on
@@ -481,8 +482,7 @@ echo Creating launcher [%Start_cmd%]...
     echo set "CWD=%%cd%%"
     echo set "CYGWIN_DRIVE=%%~d0"
     echo rem https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
-    echo rem echo set "CYGWIN_ROOT=%%~dp0.\Cygwin"
-    echo set "CYGWIN_ROOT=%%~dp0."
+    echo set "CYGWIN_ROOT=%%~dp0.\Cygwin"
     echo.
     echo for %%%%i in ^(adb.exe^) do ^(
     echo     set "ADB_PATH=%%%%~dp$PATH:i"
@@ -551,8 +551,7 @@ echo Creating launcher [%Start_cmd%]...
 :: launching Bash once to initialize user home dir
 call "%Start_cmd%" whoami || goto :fail
 
-:: set Start_Mintty=%INSTALL_ROOT%\cygwin-terminal.cmd
-set "Start_Mintty=%CYGWIN_ROOT%\cygwin-terminal.cmd"
+set Start_Mintty=%INSTALL_ROOT%\cygwin-terminal.cmd
 echo Creating launcher [%Start_Mintty%]...
 (
     echo @echo on
@@ -561,7 +560,7 @@ echo Creating launcher [%Start_Mintty%]...
     echo rem https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
     echo set "CWD=%%cd%%"
     echo set "CYGWIN_DRIVE=%%~d0"
-    echo set "CYGWIN_ROOT=%%~dp0.\"
+    echo set "CYGWIN_ROOT=%%~dp0.\Cygwin"
     echo.
     echo set "USERNAME=%CYGWIN_USERNAME%"
     echo set "HOME=/home/%%USERNAME%%"
@@ -691,7 +690,7 @@ if "%INSTALL_CONEMU%" == "yes" (
 
 set "Bashrc_sh=%CYGWIN_ROOT%\home\%CYGWIN_USERNAME%\.bashrc"
 
-echo INSTALL_PAGEANT?
+echo INSTALL_PAGEANT? '%INSTALL_PAGEANT%'
 if "%INSTALL_PAGEANT%" == "yes" (
     :: https://github.com/cuviper/ssh-pageant
     echo Adding ssh-pageant to [/home/%CYGWIN_USERNAME%/.bashrc]...
@@ -701,7 +700,7 @@ if "%INSTALL_PAGEANT%" == "yes" (
     ) >>"%Bashrc_sh%" || goto :fail
 )
 
-echo PROXY_HOST?
+echo PROXY_HOST? '%PROXY_HOST%'
 if not "%PROXY_HOST%" == "" (
     echo Adding proxy settings for host [%COMPUTERNAME%] to [/home/%CYGWIN_USERNAME%/.bashrc]...
     find "export http_proxy" "%Bashrc_sh%" >NUL || (
@@ -717,7 +716,7 @@ if not "%PROXY_HOST%" == "" (
     ) >>"%Bashrc_sh%" || goto :fail
 )
 
-echo INSTALL_NODEJS?
+echo INSTALL_NODEJS? '%INSTALL_NODEJS%'
 if "%INSTALL_NODEJS%" == "yes" (
     echo Adding NodeJS to PATH in [/home/%CYGWIN_USERNAME%/.bashrc]...
     find "nodejs" "%Bashrc_sh%" >NUL || (
@@ -728,7 +727,7 @@ if "%INSTALL_NODEJS%" == "yes" (
     )
 )
 
-echo INSTALL_ANSIBLE?
+echo INSTALL_ANSIBLE? '%INSTALL_ANSIBLE%'
 if "%INSTALL_ANSIBLE%" == "yes" (
     echo Adding Ansible to PATH in [/home/%CYGWIN_USERNAME%/.bashrc]...
     find "ansible" "%Bashrc_sh%" >NUL || (
@@ -740,7 +739,7 @@ if "%INSTALL_ANSIBLE%" == "yes" (
     )
 )
 
-echo INSTALL_TESTSSL_SH?
+echo INSTALL_TESTSSL_SH? '%INSTALL_TESTSSL_SH%'
 if "%INSTALL_TESTSSL_SH%" == "yes" (
     echo Adding testssl.sh to PATH in [/home/%CYGWIN_USERNAME%/.bashrc]...
     find "testssl" "%Bashrc_sh%" >NUL || (
@@ -751,7 +750,7 @@ if "%INSTALL_TESTSSL_SH%" == "yes" (
     )
 )
 
-echo INSTALL_BASH_FUNK?
+echo INSTALL_BASH_FUNK? '%INSTALL_BASH_FUNK%'
 if "%INSTALL_BASH_FUNK%" == "yes" (
     echo Adding bash-funk to [/home/%CYGWIN_USERNAME%/.bashrc]...
     find "bash-funk" "%Bashrc_sh%" >NUL || (
