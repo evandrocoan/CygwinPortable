@@ -551,6 +551,12 @@ echo Creating launcher [%Start_Mintty%]...
 
 :: https://stackoverflow.com/questions/9102422/windows-batch-set-inside-if-not-working
 set "InstallImprovedSettings=%CYGWIN_ROOT%\cygwin-install-improved-settings.sh"
+
+:: https://stackoverflow.com/questions/57651023/how-do-i-run-a-command-with-spaces-on-the-name-the-filename-directory-name-or
+for /F "tokens=*" %%g in ('^""%CYGWIN_ROOT%\bin\cygpath.exe" -u "%InstallImprovedSettings%"^"') do (
+set "InstallImprovedSettingsUnix=%%g"
+)
+
 if "%INSTALL_IMPROVED_USER_SETTINGS%" == "yes" (
     echo Creating launcher [%InstallImprovedSettings%]...
     (
@@ -560,19 +566,16 @@ if "%INSTALL_IMPROVED_USER_SETTINGS%" == "yes" (
         echo echo "*******************************************************************************"
         echo echo "* Installing [improved user settings]..."
         echo echo "*******************************************************************************"
-        echo /bin/git --version
-        echo /bin/git clone https://github.com/evandrocoan/MyLinuxSettings --single-branch --depth 1 --shallow-submodules "/home/%CYGWIN_USERNAME%/Downloads/MyLinuxSettings"
-        echo /bin/rsync -r -t -v -s "/home/%CYGWIN_USERNAME%/Downloads/MyLinuxSettings/" "/home/%CYGWIN_USERNAME%/"
+        echo /bin/git --version ^|^| exit $?
+        echo /bin/git clone https://github.com/evandrocoan/MyLinuxSettings --single-branch --depth 1 --shallow-submodules "/home/%CYGWIN_USERNAME%/Downloads/MyLinuxSettings" ^|^| exit $?
+        echo /bin/rsync -r -t -v -s "/home/%CYGWIN_USERNAME%/Downloads/MyLinuxSettings/" "/home/%CYGWIN_USERNAME%/" ^|^| exit $?
+        echo /bin/rm -rf "/home/%CYGWIN_USERNAME%/Downloads/MyLinuxSettings/" ^|^| exit $?
         echo.
     ) >"%InstallImprovedSettings%" || goto :fail
     "%CYGWIN_ROOT%\bin\dos2unix" "%InstallImprovedSettings%" || goto :fail
 
-    FOR /F "tokens=* USEBACKQ" %%F IN (`cygpath -u "%InstallImprovedSettings%"`) DO (
-    SET InstallImprovedSettingsUnix=%%F
-    )
-
-    "%CYGWIN_ROOT%\bin\bash" "%InstallImprovedSettings%"
-    "%CYGWIN_ROOT%\bin\rm" -f "%InstallImprovedSettings%"
+    "%CYGWIN_ROOT%\bin\bash" "%InstallImprovedSettingsUnix%" || goto :fail
+    "%CYGWIN_ROOT%\bin\rm" -f "%InstallImprovedSettingsUnix%" || goto :fail
 )
 
 echo CONEMU_CONFIG?
