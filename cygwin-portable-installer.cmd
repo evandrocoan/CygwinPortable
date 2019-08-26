@@ -113,21 +113,21 @@ echo # Installing [Cygwin Portable]...
 echo ###########################################################
 echo.
 
-set "CYGWIN_DRIVE=%~d0"
-set "INSTALL_ROOT=%~dp0"
-set "CYGWIN_ROOT=%INSTALL_ROOT%Cygwin"
-
 :: Avoid conflicts with another Cygwin installation already on the system path
+:: https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
+set "CYGWIN_DRIVE=%~d0"
+set "INSTALL_ROOT=%~dp0."
+set "CYGWIN_ROOT=%INSTALL_ROOT%\Cygwin"
 set "PATH=%SystemRoot%\system32;%SystemRoot%;%CYGWIN_ROOT%\bin;%ADB_PATH%"
 
 echo Creating Cygwin root [%CYGWIN_ROOT%]...
 if not exist "%CYGWIN_ROOT%" (
-    md "%CYGWIN_ROOT%"
+    md "%CYGWIN_ROOT%" || goto :fail
 )
 
 :: create VB script that can download files
 :: not using PowerShell which may be blocked by group policies
-set "DOWNLOADER=%INSTALL_ROOT%downloader.vbs"
+set "DOWNLOADER=%INSTALL_ROOT%\downloader.vbs"
 echo Creating [%DOWNLOADER%] script...
 
 if "%PROXY_HOST%" == "" (
@@ -233,7 +233,7 @@ echo Running Cygwin setup...
  --packages dos2unix,wget,%CYGWIN_PACKAGES% || goto :fail
 
 if "%DELETE_CYGWIN_PACKAGE_CACHE%" == "yes" (
-    rd /s /q "%CYGWIN_ROOT%\.pkg-cache"
+    rd /s /q "%CYGWIN_ROOT%\.pkg-cache" || goto :fail
 )
 
 :: set "Updater_cmd=%INSTALL_ROOT%\cygwin-updater.cmd"
@@ -241,8 +241,9 @@ set "Updater_cmd=%CYGWIN_ROOT%\cygwin-updater.cmd"
 echo Creating updater [%Updater_cmd%]...
 (
     echo @echo off
-    :: echo set "CYGWIN_ROOT=%%~dp0Cygwin"
-    echo set "CYGWIN_ROOT=%%~dp0"
+    echo rem https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
+    echo rem echo set "CYGWIN_ROOT=%%~dp0.\Cygwin"
+    echo set "CYGWIN_ROOT=%%~dp0."
     echo echo.
     echo.
     echo echo ###########################################################
@@ -259,33 +260,48 @@ echo Creating updater [%Updater_cmd%]...
     echo --upgrade-also ^^
     echo --no-replaceonreboot ^^
     echo --quiet-mode ^|^| goto :fail
-    if "%DELETE_CYGWIN_PACKAGE_CACHE%" == "yes" (
-        echo rd /s /q "%%CYGWIN_ROOT%%\.pkg-cache"
-    )
+    echo.
+    echo DELETE_CYGWIN_PACKAGE_CACHE? '%DELETE_CYGWIN_PACKAGE_CACHE%'
+    echo if "%DELETE_CYGWIN_PACKAGE_CACHE%" == "yes" ^(
+    echo     rd /s /q "%%CYGWIN_ROOT%%\.pkg-cache"
+    echo ^)
     echo echo.
     echo echo ###########################################################
     echo echo # Updating [Cygwin Portable] succeeded.
     echo echo ###########################################################
-    echo timeout /T 60
-    echo :: echo exit /0
+    echo.
+    echo :typeitright1
+    echo rem timeout /T 60
+    echo set /p "UserInputPath=Type 'exit' to quit... "
+    echo if not "%%UserInputPath%%" == "exit" goto typeitright1
+    echo echo exit /0
+    echo.
     echo :: Exit the batch file, without closing the cmd.exe, if called from another script
     echo goto :eof
     echo echo.
+    echo.
     echo :fail
     echo echo ###########################################################
     echo echo # Updating [Cygwin Portable] FAILED!
     echo echo ###########################################################
-    echo timeout /T 60
+    echo.
+    echo :typeitright2
+    echo rem timeout /T 60
+    echo set /p "UserInputPath=Type 'exit' to quit... "
+    echo if not "%%UserInputPath%%" == "exit" goto typeitright2
     echo exit /1
 ) >"%Updater_cmd%" || goto :fail
 
+:: https://stackoverflow.com/questions/9102422/windows-batch-set-inside-if-not-working
 set "Cygwin_bat=%CYGWIN_ROOT%\Cygwin.bat"
-if exist "%CYGWIN_ROOT%\Cygwin.bat" (
+set "Cygwin_prompt=cygwin-prompt.bat"
+
+if exist "%Cygwin_bat%" (
     echo Disabling default Cygwin launcher [%Cygwin_bat%]...
-    if exist "%CYGWIN_ROOT%\cygwin-prompt.bat" (
-        del "%CYGWIN_ROOT%\cygwin-prompt.bat" || goto :fail
+    if exist "%CYGWIN_ROOT%\%Cygwin_prompt%" (
+        del "%CYGWIN_ROOT%\%Cygwin_prompt%" || goto :fail
     )
-    rename "%Cygwin_bat%" "cygwin-prompt.bat" || goto :fail
+    rename "%Cygwin_bat%" "%Cygwin_prompt%" || goto :fail
 )
 
 set "Init_sh=%CYGWIN_ROOT%\portable-init.sh"
@@ -293,149 +309,167 @@ echo Creating [%Init_sh%]...
 (
     echo #!/usr/bin/env bash
     echo.
-    if "%CREATE_ROOT_USER%"=="yes" (
-        echo #
-        echo # Map Current Windows User to root user
-        echo #
-        echo.
-        echo # Check if current Windows user is in /etc/passwd
-        echo USER_SID="$(mkpasswd -c | cut -d':' -f 5)"
-        echo if ! grep -F "$USER_SID" /etc/passwd ^&^>/dev/null; then
-        echo     echo "Mapping Windows user '$USER_SID' to Cygwin '$USERNAME' in /etc/passwd..."
-        echo     GID="$(mkpasswd -c | cut -d':' -f 4)"
-        echo     echo $USERNAME:unused:1001:$GID:$USER_SID:$HOME:/bin/bash ^>^> /etc/passwd
-        echo fi
-        echo.
-        echo # already set in cygwin-environment.cmd:
-        echo # export CYGWIN_ROOT=$(cygpath -w /^)
-        echo.
-        echo #
-        echo # adjust Cygwin packages cache path
-        echo #
-        echo pkg_cache_dir=$(cygpath -w "$CYGWIN_ROOT/.pkg-cache"^)
-        echo sed -i -E "s/.*\\\.pkg-cache/"$'\t'"${pkg_cache_dir//\\/\\\\}/" /etc/setup/setup.rc
-        echo.
-    )
-    if not "%PROXY_HOST%" == "" (
-        echo if [[ "$HOSTNAME" == "%COMPUTERNAME%" ]]; then
-        echo     export http_proxy=http://%PROXY_HOST%:%PROXY_PORT%
-        echo     export https_proxy=$http_proxy
-        echo fi
-    )
+    echo # CREATE_ROOT_USER? '%CREATE_ROOT_USER%'
+    echo if [[ "w%CREATE_ROOT_USER%" == "wyes" ]]; then
+    echo     #
+    echo     # Map Current Windows User to root user
+    echo     #
+    echo     # Check if current Windows user is in /etc/passwd
+    echo     USER_SID="$(mkpasswd -c | cut -d':' -f 5)"
     echo.
-    if "%INSTALL_CONEMU%" == "yes" (
-        echo #
-        echo # Installing conemu if required
-        echo #
-        echo conemu_dir=$(cygpath -w "$CYGWIN_ROOT/../conemu"^)
-        echo if [[ ! -e $conemu_dir ]]; then
-        echo     echo "*******************************************************************************"
-        echo     echo "* Installing ConEmu..."
-        echo     echo "*******************************************************************************"
-        echo     conemu_url="https://github.com$(wget https://github.com/Maximus5/ConEmu/releases/latest -O - 2>/dev/null | egrep '/.*/releases/download/.*/.*7z' -o)" ^&^& \
-        echo     echo "Download URL=$conemu_url" ^&^& \
-        echo     wget -O "${conemu_dir}.7z" $conemu_url ^&^& \
-        echo     mkdir "$conemu_dir" ^&^& \
-        echo     bsdtar -xvf "${conemu_dir}.7z" -C "$conemu_dir" ^&^& \
-        echo     rm "${conemu_dir}.7z"
-        echo fi
-    )
-    if "%INSTALL_ANSIBLE%" == "yes" (
-        echo.
-        echo #
-        echo # Installing Ansible if not yet installed
-        echo #
-        echo if [[ ! -e /opt ]]; then mkdir /opt; fi
-        echo export PYTHONHOME=/usr/ PYTHONPATH=/usr/lib/python2.7 # workaround for "ImportError: No module named site" when Python for Windows is installed too
-        echo export PATH=$PATH:/opt/ansible/bin
-        echo export PYTHONPATH=$PYTHONPATH:/opt/ansible/lib
-        echo if ! hash ansible 2^>/dev/null; then
-        echo     echo "*******************************************************************************"
-        echo     echo "* Installing [Ansible - %ANSIBLE_GIT_BRANCH%]..."
-        echo     echo "*******************************************************************************"
-        echo     git clone https://github.com/ansible/ansible --branch %ANSIBLE_GIT_BRANCH% --single-branch --depth 1 --shallow-submodules /opt/ansible
-        echo fi
-        echo.
-    )
-    if "%INSTALL_NODEJS%" == "yes" (
-        echo.
-        echo #
-        echo # Installing NodeJS if not yet installed
-        echo #
-        echo if [[ ! -x /opt/nodejs ]]; then
-        echo     echo "*******************************************************************************"
-        echo     echo "* Installing [NodeJS]..."
-        echo     echo "*******************************************************************************"
-        echo     mkdir -p /opt/
-        echo     cd /opt/
-        echo     curl https://nodejs.org/dist/v10.16.3/node-v10.16.3-win-x64.zip -o nodejs.zip
-        echo     echo ""
-        echo     echo "Extracting NodeJS to '/opt/nodejs'..."
-        echo     unzip -q -d . nodejs.zip
-        echo     mv ./node-v10.16.3-win-x64 ./nodejs
-        echo     rm -rf nodejs.zip
-        echo     cd -
-        echo fi
-        echo.
-    )
-    if "%INSTALL_APT_CYG%" == "yes" (
-        echo #
-        echo # Installing apt-cyg package manager if not yet installed
-        echo #
-        echo if [[ ! -x /usr/local/bin/apt-cyg ]]; then
-        echo     echo "*******************************************************************************"
-        echo     echo "* Installing apt-cyg..."
-        echo     echo "*******************************************************************************"
-        echo     wget -O /usr/local/bin/apt-cyg https://raw.githubusercontent.com/kou1okada/apt-cyg/master/apt-cyg
-        echo     chmod +x /usr/local/bin/apt-cyg
-        echo fi
-        echo.
-    )
-    if "%INSTALL_BASH_FUNK%" == "yes" (
-        echo.
-        echo #
-        echo # Installing bash-funk if not yet installed
-        echo #
-        echo if [[ ! -e /opt ]]; then mkdir /opt; fi
-        echo if [[ ! -e /opt/bash-funk/bash-funk.sh ]]; then
-        echo     echo "*******************************************************************************"
-        echo     echo "* Installing [bash-funk]..."
-        echo     echo "*******************************************************************************"
-        echo     if hash git ^&^>/dev/null; then
-        echo         git clone https://github.com/vegardit/bash-funk --branch master --single-branch --depth 1 --shallow-submodules /opt/bash-funk
-        echo     elif hash svn ^&^>/dev/null; then
-        echo         svn checkout https://github.com/vegardit/bash-funk/trunk /opt/bash-funk
-        echo     else
-        echo         mkdir /opt/bash-funk ^&^& \
-        echo         cd /opt/bash-funk ^&^& \
-        echo         wget -qO- --show-progress https://github.com/vegardit/bash-funk/tarball/master ^| tar -xzv --strip-components 1
-        echo     fi
-        echo fi
-    )
-    if "%INSTALL_TESTSSL_SH%" == "yes" (
-        echo.
-        echo #
-        echo # Installing testssl.sh if not yet installed
-        echo #
-        echo if [[ ! -e /opt ]]; then mkdir /opt; fi
-        echo if [[ ! -e /opt/testssl/testssl.sh ]]; then
-        echo     echo "*******************************************************************************"
-        echo     echo "* Installing [testssl.sh - %TESTSSL_GIT_BRANCH%]..."
-        echo     echo "*******************************************************************************"
-        echo     if hash git ^&^>/dev/null; then
-        echo         git clone https://github.com/drwetter/testssl.sh --branch %TESTSSL_GIT_BRANCH% --single-branch --depth 1 --shallow-submodules /opt/testssl
-        echo     elif hash svn ^&^>/dev/null; then
-        echo         svn checkout https://github.com/drwetter/testssl.sh/branches/%TESTSSL_GIT_BRANCH% /opt/testssl
-        echo     else
-        echo         mkdir /opt/testssl ^&^& \
-        echo         cd /opt/testssl ^&^& \
-        echo         wget -qO- --show-progress https://github.com/drwetter/testssl.sh/tarball/%TESTSSL_GIT_BRANCH% ^| tar -xzv --strip-components 1
-        echo     fi
-        echo     chmod +x /opt/testssl/testssl.sh
-        echo fi
-    )
+    echo     if ! grep -F "$USER_SID" /etc/passwd ^&^>/dev/null; then
+    echo         echo "Mapping Windows user '$USER_SID' to Cygwin '$USERNAME' in /etc/passwd..."
+    echo         GID="$(mkpasswd -c | cut -d':' -f 4)"
+    echo         echo $USERNAME:unused:1001:$GID:$USER_SID:$HOME:/bin/bash ^>^> /etc/passwd
+    echo     fi
+    echo.
+    echo     # already set in cygwin-environment.cmd:
+    echo     # export CYGWIN_ROOT=$(cygpath -w /^)
+    echo.
+    echo     #
+    echo     # adjust Cygwin packages cache path
+    echo     #
+    echo     pkg_cache_dir=$(cygpath -w "$CYGWIN_ROOT/.pkg-cache"^)
+    echo     sed -i -E "s/.*\\\.pkg-cache/"$'\t'"${pkg_cache_dir//\\/\\\\}/" /etc/setup/setup.rc
+    echo fi
+    echo.
+    echo # PROXY_HOST? '%PROXY_HOST%'
+    echo if ! [[ "w%PROXY_HOST%" == "w" ]]; then
+    echo     if [[ "$HOSTNAME" == "%COMPUTERNAME%" ]]; then
+    echo         export http_proxy=http://%PROXY_HOST%:%PROXY_PORT%
+    echo         export https_proxy=$http_proxy
+    echo     fi
+    echo fi
+    echo.
+    echo # INSTALL_CONEMU? '%INSTALL_CONEMU%'
+    echo if [[ "w%INSTALL_CONEMU%" == "wyes" ]]; then
+    echo     #
+    echo     # Installing conemu if required
+    echo     #
+    echo     conemu_dir=$(cygpath -w "$CYGWIN_ROOT/../conemu"^)
+    echo     if [[ ! -e $conemu_dir ]]; then
+    echo         echo "*******************************************************************************"
+    echo         echo "* Installing ConEmu..."
+    echo         echo "*******************************************************************************"
+    echo.
+    echo         conemu_url="https://github.com$(wget https://github.com/Maximus5/ConEmu/releases/latest -O - 2>/dev/null | egrep '/.*/releases/download/.*/.*7z' -o)" ^&^& \
+    echo         echo "Download URL=$conemu_url" ^&^& \
+    echo         wget -O "${conemu_dir}.7z" $conemu_url ^&^& \
+    echo.
+    echo         mkdir "$conemu_dir" ^&^& \
+    echo         bsdtar -xvf "${conemu_dir}.7z" -C "$conemu_dir" ^&^& \
+    echo         rm "${conemu_dir}.7z"
+    echo     fi
+    echo fi
+    echo.
+    echo # INSTALL_ANSIBLE? '%INSTALL_ANSIBLE%'
+    echo if [[ "w%INSTALL_ANSIBLE%" == "wyes" ]]; then
+    echo     #
+    echo     # Installing Ansible if not yet installed
+    echo     #
+    echo     if [[ ! -e /opt ]]; then mkdir /opt; fi
+    echo     export PYTHONHOME=/usr/ PYTHONPATH=/usr/lib/python2.7 # workaround for "ImportError: No module named site" when Python for Windows is installed too
+    echo     export PATH=$PATH:/opt/ansible/bin
+    echo     export PYTHONPATH=$PYTHONPATH:/opt/ansible/lib
+    echo.
+    echo     if ! hash ansible 2^>/dev/null; then
+    echo         echo "*******************************************************************************"
+    echo         echo "* Installing [Ansible - %ANSIBLE_GIT_BRANCH%]..."
+    echo         echo "*******************************************************************************"
+    echo.
+    echo         git clone https://github.com/ansible/ansible --branch %ANSIBLE_GIT_BRANCH% --single-branch --depth 1 --shallow-submodules /opt/ansible
+    echo     fi
+    echo fi
+    echo.
+    echo # INSTALL_NODEJS? '%INSTALL_NODEJS%'
+    echo if [[ "w%INSTALL_NODEJS%" == "wyes" ]]; then
+    echo     #
+    echo     # Installing NodeJS if not yet installed
+    echo     #
+    echo     if [[ ! -x /opt/nodejs ]]; then
+    echo         echo "*******************************************************************************"
+    echo         echo "* Installing [NodeJS]..."
+    echo         echo "*******************************************************************************"
+    echo.
+    echo         mkdir -p /opt/
+    echo         cd /opt/
+    echo         curl https://nodejs.org/dist/v10.16.3/node-v10.16.3-win-x64.zip -o nodejs.zip
+    echo.
+    echo         echo ""
+    echo         echo "Extracting NodeJS to '/opt/nodejs'..."
+    echo         unzip -q -d . nodejs.zip
+    echo         mv ./node-v10.16.3-win-x64 ./nodejs
+    echo         rm -rf nodejs.zip
+    echo         cd -
+    echo     fi
+    echo fi
+    echo.
+    echo # INSTALL_APT_CYG? '%INSTALL_APT_CYG%'
+    echo if [[ "w%INSTALL_APT_CYG%" == "wyes" ]]; then
+    echo     #
+    echo     # Installing apt-cyg package manager if not yet installed
+    echo     #
+    echo     if [[ ! -x /usr/local/bin/apt-cyg ]]; then
+    echo         echo "*******************************************************************************"
+    echo         echo "* Installing apt-cyg..."
+    echo         echo "*******************************************************************************"
+    echo.
+    echo         wget -O /usr/local/bin/apt-cyg https://raw.githubusercontent.com/kou1okada/apt-cyg/master/apt-cyg
+    echo         chmod +x /usr/local/bin/apt-cyg
+    echo     fi
+    echo fi
+    echo.
+    echo # INSTALL_BASH_FUNK? '%INSTALL_BASH_FUNK%'
+    echo if [[ "w%INSTALL_BASH_FUNK%" == "wyes" ]]; then
+    echo     #
+    echo     # Installing bash-funk if not yet installed
+    echo     #
+    echo     if [[ ! -e /opt ]]; then mkdir /opt; fi
+    echo.
+    echo     if [[ ! -e /opt/bash-funk/bash-funk.sh ]]; then
+    echo         echo "*******************************************************************************"
+    echo         echo "* Installing [bash-funk]..."
+    echo         echo "*******************************************************************************"
+    echo.
+    echo         if hash git ^&^>/dev/null; then
+    echo             git clone https://github.com/vegardit/bash-funk --branch master --single-branch --depth 1 --shallow-submodules /opt/bash-funk
+    echo         elif hash svn ^&^>/dev/null; then
+    echo             svn checkout https://github.com/vegardit/bash-funk/trunk /opt/bash-funk
+    echo         else
+    echo             mkdir /opt/bash-funk ^&^& \
+    echo             cd /opt/bash-funk ^&^& \
+    echo             wget -qO- --show-progress https://github.com/vegardit/bash-funk/tarball/master ^| tar -xzv --strip-components 1
+    echo         fi
+    echo     fi
+    echo fi
+    echo.
+    echo # INSTALL_TESTSSL_SH? '%INSTALL_TESTSSL_SH%'
+    echo if [[ "w%INSTALL_TESTSSL_SH%" == "wyes" ]]; then
+    echo     #
+    echo     # Installing testssl.sh if not yet installed
+    echo     #
+    echo     if [[ ! -e /opt ]]; then mkdir /opt; fi
+    echo.
+    echo     if [[ ! -e /opt/testssl/testssl.sh ]]; then
+    echo         echo "*******************************************************************************"
+    echo         echo "* Installing [testssl.sh - %TESTSSL_GIT_BRANCH%]..."
+    echo         echo "*******************************************************************************"
+    echo.
+    echo         if hash git ^&^>/dev/null; then
+    echo             git clone https://github.com/drwetter/testssl.sh --branch %TESTSSL_GIT_BRANCH% --single-branch --depth 1 --shallow-submodules /opt/testssl
+    echo         elif hash svn ^&^>/dev/null; then
+    echo             svn checkout https://github.com/drwetter/testssl.sh/branches/%TESTSSL_GIT_BRANCH% /opt/testssl
+    echo         else
+    echo             mkdir /opt/testssl ^&^& \
+    echo             cd /opt/testssl ^&^& \
+    echo             wget -qO- --show-progress https://github.com/drwetter/testssl.sh/tarball/%TESTSSL_GIT_BRANCH% ^| tar -xzv --strip-components 1
+    echo         fi
+    echo         chmod +x /opt/testssl/testssl.sh
+    echo     fi
+    echo fi
 
 ) >"%Init_sh%" || goto :fail
+
 "%CYGWIN_ROOT%\bin\dos2unix" "%Init_sh%" || goto :fail
 
 :: set "Start_cmd=%INSTALL_ROOT%\cygwin-environment.cmd"
@@ -446,8 +480,9 @@ echo Creating launcher [%Start_cmd%]...
     echo setlocal enabledelayedexpansion
     echo set "CWD=%%cd%%"
     echo set "CYGWIN_DRIVE=%%~d0"
-    :: echo set "CYGWIN_ROOT=%%~dp0Cygwin"
-    echo set "CYGWIN_ROOT=%%~dp0"
+    echo rem https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
+    echo rem echo set "CYGWIN_ROOT=%%~dp0.\Cygwin"
+    echo set "CYGWIN_ROOT=%%~dp0."
     echo.
     echo for %%%%i in ^(adb.exe^) do ^(
     echo     set "ADB_PATH=%%%%~dp$PATH:i"
@@ -494,12 +529,13 @@ echo Creating launcher [%Start_cmd%]...
     echo if "%%1" == "" (
     if "%INSTALL_CONEMU%" == "yes" (
         if "%CYGWIN_ARCH%" == "64" (
-            echo   start "" "%%~dp0conemu\ConEmu64.exe" %CON_EMU_OPTIONS%
+            echo rem https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
+            echo   start "" "%%~dp0.\conemu\ConEmu64.exe" %CON_EMU_OPTIONS%
         ) else (
-            echo   start "" "%%~dp0conemu\ConEmu.exe" %CON_EMU_OPTIONS%
+            echo   start "" "%%~dp0.\conemu\ConEmu.exe" %CON_EMU_OPTIONS%
         )
     ) else (
-        echo   mintty --nopin %MINTTY_OPTIONS% --icon %CYGWIN_ROOT%\Cygwin-Terminal.ico -
+        echo   mintty --nopin %MINTTY_OPTIONS% --icon %%CYGWIN_ROOT%%\Cygwin-Terminal.ico -
     )
     echo ^) else (
     echo   if "%%1" == "no-mintty" (
@@ -513,7 +549,7 @@ echo Creating launcher [%Start_cmd%]...
 ) >"%Start_cmd%" || goto :fail
 
 :: launching Bash once to initialize user home dir
-call "%Start_cmd%" whoami
+call "%Start_cmd%" whoami || goto :fail
 
 :: set Start_Mintty=%INSTALL_ROOT%\cygwin-terminal.cmd
 set "Start_Mintty=%CYGWIN_ROOT%\cygwin-terminal.cmd"
@@ -521,9 +557,11 @@ echo Creating launcher [%Start_Mintty%]...
 (
     echo @echo on
     echo setlocal enabledelayedexpansion
+    echo.
+    echo rem https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
     echo set "CWD=%%cd%%"
     echo set "CYGWIN_DRIVE=%%~d0"
-    echo set "CYGWIN_ROOT=%%~dp0"
+    echo set "CYGWIN_ROOT=%%~dp0.\"
     echo.
     echo set "USERNAME=%CYGWIN_USERNAME%"
     echo set "HOME=/home/%%USERNAME%%"
@@ -537,7 +575,7 @@ echo Creating launcher [%Start_Mintty%]...
     echo chdir "%%CYGWIN_ROOT%%\bin"
     echo.
     echo if "%%1" == "" (
-    echo   mintty --nopin %MINTTY_OPTIONS% --icon %CYGWIN_ROOT%\Cygwin-Terminal.ico -
+    echo   mintty --nopin %MINTTY_OPTIONS% --icon %%CYGWIN_ROOT%%\Cygwin-Terminal.ico -
     echo ^) else (
     echo   if "%%1" == "no-mintty" (
     echo     bash --login -i
@@ -555,7 +593,7 @@ set "InstallImprovedSettings=%CYGWIN_ROOT%\cygwin-install-improved-settings.sh"
 :: https://stackoverflow.com/questions/57651023/how-do-i-run-a-command-with-spaces-on-the-name-the-filename-directory-name-or
 for /F "tokens=*" %%g in ('^""%CYGWIN_ROOT%\bin\cygpath.exe" -u "%InstallImprovedSettings%"^"') do (
 set "InstallImprovedSettingsUnix=%%g"
-)
+) || goto :fail
 
 if "%INSTALL_IMPROVED_USER_SETTINGS%" == "yes" (
     echo Creating launcher [%InstallImprovedSettings%]...
@@ -579,7 +617,7 @@ if "%INSTALL_IMPROVED_USER_SETTINGS%" == "yes" (
 )
 
 echo CONEMU_CONFIG?
-set "conemu_config=%INSTALL_ROOT%conemu\ConEmu.xml"
+set "conemu_config=%INSTALL_ROOT%\conemu\ConEmu.xml"
 if "%INSTALL_CONEMU%" == "yes" (
     (
         echo ^<?xml version="1.0" encoding="UTF-8"?^>
@@ -734,7 +772,7 @@ echo Use [%Start_cmd%] to launch Cygwin Portable.
 echo.
 
 :typeitright1
-:: timeout /T 60
+rem timeout /T 60
 set /p "UserInputPath=Type 'exit' to quit... "
 if not "%UserInputPath%" == "exit" goto typeitright1
 
@@ -752,7 +790,7 @@ goto :eof
     echo.
 
     :typeitright2
-    :: timeout /T 60
+    rem timeout /T 60
     set /p "UserInputPath=Type 'exit' to quit... "
     if not "%UserInputPath%" == "exit" goto typeitright2
     exit /b 1
