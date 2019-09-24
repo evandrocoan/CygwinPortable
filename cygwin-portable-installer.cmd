@@ -45,7 +45,7 @@ set INSTALL_NODEJS=yes
 set INSTALL_IMPROVED_USER_SETTINGS=yes
 
 :: select the packages to be installed automatically via apt-cyg
-set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,git-svn,gnupg,inetutils,lz4,mc,nc,openssh,openssl,perl,pv,screen,subversion,unzip,vim,wget,zip,zstd,python2,python3,python2-pip,python3-pip,graphviz,unison2.51,make,gcc-g++,ncdu,gdb,tree,psmisc,rsync
+set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,git-svn,gnupg,inetutils,lz4,mc,nc,openssh,openssl,perl,pv,screen,subversion,unzip,vim,wget,zip,zstd,python2,python3,python2-pip,python3-pip,python2-devel,python3-devel,graphviz,unison2.51,make,gcc-g++,ncdu,gdb,tree,psmisc,rsync
 
 :: if set to 'yes' the local package cache created by Cygwin setup will be deleted after installation/update
 set DELETE_CYGWIN_PACKAGE_CACHE=no
