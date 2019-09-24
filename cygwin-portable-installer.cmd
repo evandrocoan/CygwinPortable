@@ -29,7 +29,7 @@ set PROXY_HOST=
 set PROXY_PORT=8080
 
 :: change the URL to the closest mirror https://cygwin.com/mirrors.html
-set CYGWIN_MIRROR=http://linorg.usp.br/cygwin/
+set CYGWIN_MIRROR=http://cygwin.mirror.constant.com/
 
 :: if set to yes, then, a different user than your current computer account will be created.
 :: if set to no, then, you need to set CYGWIN_USERNAME to your current computer user name.
