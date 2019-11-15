@@ -3,8 +3,7 @@
 :: Copyright 2017-2019 by Vegard IT GmbH (https://vegardit.com) and the cygwin-portable-installer contributors.
 :: SPDX-License-Identifier: Apache-2.0
 ::
-:: @author Sebastian Thomschke, Vegard IT GmbH
-
+:: @author Sebastian Thomschke, Vegard IT GmbH, Evandro Coan
 
 :: ABOUT
 :: =====
@@ -17,12 +16,14 @@
 :: - AWS CLI (AWS cloud command line tool, see https://github.com/aws/aws-cli)
 :: - testssl.sh (command line tool to check SSL/TLS configurations of servers, see https://testssl.sh/)
 
-
 :: ============================================================================================================
 :: CONFIG CUSTOMIZATION START
+:: You can customize the following variables to your needs before running the batch file
 :: ============================================================================================================
 
-:: You can customize the following variables to your needs before running the batch file:
+:: Only generate the configuration files, do not install anything
+:: It can also be enabled by the command line with the argument -d or --dry-run
+:: set "DRY_RUN_MODE=yes"
 
 :: set proxy if required (unfortunately Cygwin setup.exe does not have commandline options to specify proxy user credentials)
 set PROXY_HOST=
@@ -106,7 +107,6 @@ set "CYGWIN_PATH=%%SystemRoot%%\system32;%%SystemRoot%%"
 :: CONFIG CUSTOMIZATION END
 :: ============================================================================================================
 
-
 echo.
 echo ###########################################################
 echo # Installing [Cygwin Portable]...
@@ -119,6 +119,11 @@ set "CYGWIN_DRIVE=%~d0"
 set "INSTALL_ROOT=%~dp0.\PortableCygwin"
 set "CYGWIN_ROOT=%INSTALL_ROOT%\Cygwin"
 set "PATH=%SystemRoot%\system32;%SystemRoot%;%CYGWIN_ROOT%\bin;%ADB_PATH%"
+
+:: https://stackoverflow.com/questions/2541767/what-is-the-proper-way-to-test-if-a-parameter-is-empty-in-a-batch-file
+IF "%1~" == "-d" set "DRY_RUN_MODE=yes"
+IF "%1~" == "--dry-run" set "DRY_RUN_MODE=yes"
+IF "%DRY_RUN_MODE%" == "" set "DRY_RUN_MODE=no"
 
 echo Creating Cygwin root [%CYGWIN_ROOT%]...
 if not exist "%CYGWIN_ROOT%" (
@@ -177,12 +182,14 @@ if "%CYGWIN_ARCH%" == "64" (
 ) else (
     set CYGWIN_SETUP=setup-x86.exe
 )
+IF "%DRY_RUN_MODE%" == "yes" GOTO :skipdownloader
 
 if exist "%CYGWIN_ROOT%\%CYGWIN_SETUP%" (
     del "%CYGWIN_ROOT%\%CYGWIN_SETUP%" || goto :fail
 )
 cscript //Nologo "%DOWNLOADER%" https://cygwin.org/%CYGWIN_SETUP% "%CYGWIN_ROOT%\%CYGWIN_SETUP%" || goto :fail
 del "%DOWNLOADER%"
+:skipdownloader
 
 :: Cygwin command line options: https://cygwin.com/faq/faq.html#faq.setup.cli
 if "%PROXY_HOST%" == "" (
@@ -220,6 +227,8 @@ if "%INSTALL_TESTSSL_SH%" == "yes" (
 
 
 echo Running Cygwin setup...
+IF "%DRY_RUN_MODE%" == "yes" GOTO :skipmaininstaller
+
 "%CYGWIN_ROOT%\%CYGWIN_SETUP%" --no-admin ^
  --site %CYGWIN_MIRROR% %CYGWIN_PROXY% ^
  --root "%CYGWIN_ROOT%" ^
@@ -235,6 +244,7 @@ echo Running Cygwin setup...
 if "%DELETE_CYGWIN_PACKAGE_CACHE%" == "yes" (
     rd /s /q "%CYGWIN_ROOT%\.pkg-cache" || goto :fail
 )
+:skipmaininstaller
 
 set "Updater_cmd=%INSTALL_ROOT%\cygwin-updater.cmd"
 echo Creating updater [%Updater_cmd%]...
@@ -272,10 +282,10 @@ echo Creating updater [%Updater_cmd%]...
     echo echo # Updating [Cygwin Portable] succeeded.
     echo echo ###########################################################
     echo.
-    echo :typeitright1
+    echo :typeitrightupdatesucceed
     echo :: timeout /T 60
     echo set /p "UserInputPath=Type 'exit' to quit... "
-    echo if not "%%UserInputPath%%" == "exit" goto typeitright1
+    echo if not "%%UserInputPath%%" == "exit" goto typeitrightupdatesucceed
     echo echo exit /0
     echo.
     echo :: Exit the batch file, without closing the cmd.exe, if called from another script
@@ -287,10 +297,10 @@ echo Creating updater [%Updater_cmd%]...
     echo echo # Updating [Cygwin Portable] FAILED!
     echo echo ###########################################################
     echo.
-    echo :typeitright2
+    echo :typeitrightupdatefailed
     echo :: timeout /T 60
     echo set /p "UserInputPath=Type 'exit' to quit... "
-    echo if not "%%UserInputPath%%" == "exit" goto typeitright2
+    echo if not "%%UserInputPath%%" == "exit" goto typeitrightupdatefailed
     echo exit /1
 ) >"%Updater_cmd%" || goto :fail
 
@@ -537,7 +547,7 @@ echo Creating launcher [%Start_cmd%]...
     echo.
     echo :: https://stackoverflow.com/questions/57651023/how-do-i-run-a-command-with-spaces-on-the-name-the-filename-directory-name-or
     echo for /F "tokens=*" %%%%g in ^('^^""%%CYGWIN_ROOT%%\bin\cygpath.exe" -u "%%CWD%%"^"'^) do ^(
-    echo set "CYGWINCWD=%%%%g"
+    echo     set "CYGWINCWD=%%%%g"
     echo ^) ^|^| goto :fail
     echo.
     echo :: https://stackoverflow.com/questions/935609/batch-parameters-everything-after-1/45969239#45969239
@@ -576,7 +586,7 @@ echo Creating launcher [%Start_cmd%]...
 ) >"%Start_cmd%" || goto :fail
 
 :: launching Bash once to initialize user home dir
-call "%Start_cmd%" whoami || goto :fail
+IF NOT "%DRY_RUN_MODE%" == "yes" call "%Start_cmd%" whoami || goto :fail
 
 set Start_Mintty=%INSTALL_ROOT%\cygwin-terminal.cmd
 echo Creating launcher [%Start_Mintty%]...
@@ -599,7 +609,7 @@ echo Creating launcher [%Start_Mintty%]...
     echo.
     echo :: https://stackoverflow.com/questions/57651023/how-do-i-run-a-command-with-spaces-on-the-name-the-filename-directory-name-or
     echo for /F "tokens=*" %%%%g in ^('^^""%%CYGWIN_ROOT%%\bin\cygpath.exe" -u "%%CWD%%"^"'^) do ^(
-    echo set "CYGWINCWD=%%%%g"
+    echo     set "CYGWINCWD=%%%%g"
     echo ^) ^|^| goto :fail
     echo.
     echo :: https://stackoverflow.com/questions/935609/batch-parameters-everything-after-1/45969239#45969239
@@ -634,7 +644,7 @@ set "InstallImprovedSettings=%CYGWIN_ROOT%\cygwin-install-improved-settings.sh"
 
 :: https://stackoverflow.com/questions/57651023/how-do-i-run-a-command-with-spaces-on-the-name-the-filename-directory-name-or
 for /F "tokens=*" %%g in ('^""%CYGWIN_ROOT%\bin\cygpath.exe" -u "%InstallImprovedSettings%"^"') do (
-set "InstallImprovedSettingsUnix=%%g"
+    set "InstallImprovedSettingsUnix=%%g"
 ) || goto :fail
 
 if "%INSTALL_IMPROVED_USER_SETTINGS%" == "yes" (
@@ -654,8 +664,8 @@ if "%INSTALL_IMPROVED_USER_SETTINGS%" == "yes" (
     ) >"%InstallImprovedSettings%" || goto :fail
     "%CYGWIN_ROOT%\bin\dos2unix" "%InstallImprovedSettings%" || goto :fail
 
-    "%CYGWIN_ROOT%\bin\bash" "%InstallImprovedSettingsUnix%" || goto :fail
-    "%CYGWIN_ROOT%\bin\rm" -f "%InstallImprovedSettingsUnix%" || goto :fail
+    IF NOT "%DRY_RUN_MODE%" == "yes" "%CYGWIN_ROOT%\bin\bash" "%InstallImprovedSettingsUnix%" || goto :fail
+    IF NOT "%DRY_RUN_MODE%" == "yes" "%CYGWIN_ROOT%\bin\rm" -f "%InstallImprovedSettingsUnix%" || goto :fail
 )
 
 echo CONEMU_CONFIG?
@@ -732,11 +742,12 @@ if "%INSTALL_CONEMU%" == "yes" (
 )
 
 set "Bashrc_sh=%CYGWIN_ROOT%\home\%CYGWIN_USERNAME%\.bashrc"
+if NOT exist "%Bashrc_sh%" goto :afterbashrcinstallations
 
 echo INSTALL_PAGEANT? '%INSTALL_PAGEANT%'
 if "%INSTALL_PAGEANT%" == "yes" (
     :: https://github.com/cuviper/ssh-pageant
-    echo Adding ssh-pageant to [/home/%CYGWIN_USERNAME%/.bashrc]...
+    echo Adding ssh-pageant to %Bashrc_sh%...
     find "ssh-pageant" "%Bashrc_sh%" >NUL || (
         echo.
         echo eval $(/usr/bin/ssh-pageant -r -a "/tmp/.ssh-pageant-$USERNAME"^)
@@ -803,8 +814,19 @@ if "%INSTALL_BASH_FUNK%" == "yes" (
         ) >>"%Bashrc_sh%" || goto :fail
     )
 )
-"%CYGWIN_ROOT%\bin\dos2unix" "%Bashrc_sh%" || goto :fail
 
+"%CYGWIN_ROOT%\bin\dos2unix" "%Bashrc_sh%" || goto :fail
+GOTO :installingcygwinsucceed
+
+:afterbashrcinstallations
+echo.
+echo ###########################################################
+echo # Could not install things to .bashrc because
+echo # it does not exists %Bashrc_sh%...
+echo ###########################################################
+echo.
+
+:installingcygwinsucceed
 echo.
 echo ###########################################################
 echo # Installing [Cygwin Portable] succeeded.
@@ -813,26 +835,26 @@ echo.
 echo Use [%Start_cmd%] to launch Cygwin Portable.
 echo.
 
-:typeitright1
+:typeitrightinstallationend
 :: timeout /T 60
 set /p "UserInputPath=Type 'exit' to quit... "
-if not "%UserInputPath%" == "exit" goto typeitright1
+if not "%UserInputPath%" == "exit" goto typeitrightinstallationend
 
 :: Exit the batch file, without closing the cmd.exe, if called from another script
 goto :eof
 
 :fail
-    if exist "%DOWNLOADER%" (
-        del "%DOWNLOADER%"
-    )
-    echo.
-    echo ###########################################################
-    echo # Installing [Cygwin Portable] FAILED!
-    echo ###########################################################
-    echo.
+if exist "%DOWNLOADER%" (
+    del "%DOWNLOADER%"
+)
+echo.
+echo ###########################################################
+echo # Installing [Cygwin Portable] FAILED!
+echo ###########################################################
+echo.
 
-    :typeitright2
-    :: timeout /T 60
-    set /p "UserInputPath=Type 'exit' to quit... "
-    if not "%UserInputPath%" == "exit" goto typeitright2
-    exit /b 1
+:typeitrightinstallationfailed
+:: timeout /T 60
+set /p "UserInputPath=Type 'exit' to quit... "
+if not "%UserInputPath%" == "exit" goto typeitrightinstallationfailed
+exit /b 1
