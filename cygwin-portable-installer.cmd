@@ -546,17 +546,19 @@ echo Creating launcher [%Start_cmd%]...
     echo call set _tail=%%%%_tail:*%%1=%%%%
     echo echo %%_tail%%
     echo.
-    echo if "%%1" == "no-mintty" (
+    echo :: https://stackoverflow.com/questions/58885168/error-1-was-unexpected-at-this-time-when-first-command-line-argument-is-dou
+    echo if "%%~1" == "no-mintty" (
     echo     "%%CYGWIN_ROOT%%\bin\bash.exe" --login -i %%_tail%% ^|^| goto :fail
     echo ^) else (
-    echo     if "%%1" == "mintty" (
+    echo     :: https://stackoverflow.com/questions/58885168/error-1-was-unexpected-at-this-time-when-first-command-line-argument-is-dou
+    echo     if "%%~1" == "mintty" (
     echo         "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%_tail%% - ^|^| goto :fail
     echo     ^) else (
     if "%INSTALL_CONEMU%" == "yes" (
         if "%CYGWIN_ARCH%" == "64" (
     echo         start "" "%%~dp0.\conemu\ConEmu64.exe" %CON_EMU_OPTIONS% %%* ^|^| goto :fail
         ) else (
-    echo         start "" "%%~dp0.\conemu\ConEmu.exe" %CON_EMU_OPTIONS%  %%* ^|^| goto :fail
+    echo         start "" "%%~dp0.\conemu\ConEmu.exe" %CON_EMU_OPTIONS% %%* ^|^| goto :fail
         )
     ) else (
     echo         "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%* /bin/bash -l -c "cd '%%CYGWINCWD%%'; bash" ^|^| goto :fail
@@ -606,10 +608,12 @@ echo Creating launcher [%Start_Mintty%]...
     echo call set _tail=%%%%_tail:*%%1=%%%%
     echo echo %%_tail%%
     echo.
-    echo if "%%1" == "no-mintty" (
+    echo :: https://stackoverflow.com/questions/58885168/error-1-was-unexpected-at-this-time-when-first-command-line-argument-is-dou
+    echo if "%%~1" == "no-mintty" (
     echo     "%%CYGWIN_ROOT%%\bin\bash.exe" --login -i %%_tail%% ^|^| goto :fail
     echo ^) else (
-    echo     if "%%1" == "mintty" (
+    echo     :: https://stackoverflow.com/questions/58885168/error-1-was-unexpected-at-this-time-when-first-command-line-argument-is-dou
+    echo     if "%%~1" == "mintty" (
     echo         "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%_tail%% - ^|^| goto :fail
     echo     ^) else (
     echo         "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%* /bin/bash -l -c "cd '%%CYGWINCWD%%'; bash" ^|^| goto :fail
