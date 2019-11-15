@@ -533,30 +533,36 @@ echo Creating launcher [%Start_cmd%]...
     echo      ^) ^> "%%CYGWIN_ROOT%%\etc\fstab" ^|^| goto :fail
     echo ^)
     echo.
-    echo %%CYGWIN_DRIVE%%
-    echo chdir "%%CYGWIN_ROOT%%\bin" ^|^| goto :fail
-    echo bash "%%CYGWIN_ROOT%%\portable-init.sh" ^|^| goto :fail
+    echo "%%CYGWIN_ROOT%%\bin\bash.exe" "%%CYGWIN_ROOT%%\portable-init.sh" ^|^| goto :fail
     echo.
-    echo if "%%1" == "" (
+    echo :: https://stackoverflow.com/questions/57651023/how-do-i-run-a-command-with-spaces-on-the-name-the-filename-directory-name-or
+    echo for /F "tokens=*" %%%%g in ^('^^""%%CYGWIN_ROOT%%\bin\cygpath.exe" -u "%%CWD%%"^"'^) do ^(
+    echo set "CYGWINCWD=%%%%g"
+    echo ^) ^|^| goto :fail
+    echo.
+    echo :: https://stackoverflow.com/questions/935609/batch-parameters-everything-after-1/45969239#45969239
+    echo echo %%*
+    echo set _tail=%%*
+    echo call set _tail=%%%%_tail:*%%1=%%%%
+    echo echo %%_tail%%
+    echo.
+    echo if "%%1" == "no-mintty" (
+    echo     "%%CYGWIN_ROOT%%\bin\bash.exe" --login -i %%_tail%% ^|^| goto :fail
+    echo ^) else (
+    echo     if "%%1" == "mintty" (
+    echo         "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%_tail%% - ^|^| goto :fail
+    echo     ^) else (
     if "%INSTALL_CONEMU%" == "yes" (
         if "%CYGWIN_ARCH%" == "64" (
-            echo rem https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
-            echo   start "" "%%~dp0.\conemu\ConEmu64.exe" %CON_EMU_OPTIONS% ^|^| goto :fail
+    echo         start "" "%%~dp0.\conemu\ConEmu64.exe" %CON_EMU_OPTIONS% %%* ^|^| goto :fail
         ) else (
-            echo   start "" "%%~dp0.\conemu\ConEmu.exe" %CON_EMU_OPTIONS% ^|^| goto :fail
+    echo         start "" "%%~dp0.\conemu\ConEmu.exe" %CON_EMU_OPTIONS%  %%* ^|^| goto :fail
         )
     ) else (
-        echo   mintty --nopin %MINTTY_OPTIONS% --icon %%CYGWIN_ROOT%%\Cygwin-Terminal.ico - ^|^| goto :fail
+    echo         "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%* /bin/bash -l -c "cd '%%CYGWINCWD%%'; bash" ^|^| goto :fail
     )
-    echo ^) else (
-    echo   if "%%1" == "no-mintty" (
-    echo     bash --login -i ^|^| goto :fail
-    echo   ^) else (
-    echo     bash --login -c %%* ^|^| goto :fail
-    echo   ^)
+    echo     ^)
     echo ^)
-    echo.
-    echo cd "%%CWD%%" ^|^| goto :fail
     echo.
     echo :: Exit the batch file, without closing the cmd.exe, if called from another script
     echo goto :eof
@@ -589,20 +595,26 @@ echo Creating launcher [%Start_Mintty%]...
     echo set "GROUP=None"
     echo set "GRP="
     echo.
-    echo %%CYGWIN_DRIVE%%
-    echo chdir "%%CYGWIN_ROOT%%\bin" ^|^| goto :fail
+    echo :: https://stackoverflow.com/questions/57651023/how-do-i-run-a-command-with-spaces-on-the-name-the-filename-directory-name-or
+    echo for /F "tokens=*" %%%%g in ^('^^""%%CYGWIN_ROOT%%\bin\cygpath.exe" -u "%%CWD%%"^"'^) do ^(
+    echo set "CYGWINCWD=%%%%g"
+    echo ^) ^|^| goto :fail
     echo.
-    echo if "%%1" == "" (
-    echo   mintty --nopin %MINTTY_OPTIONS% --icon %%CYGWIN_ROOT%%\Cygwin-Terminal.ico - ^|^| goto :fail
+    echo :: https://stackoverflow.com/questions/935609/batch-parameters-everything-after-1/45969239#45969239
+    echo echo %%*
+    echo set _tail=%%*
+    echo call set _tail=%%%%_tail:*%%1=%%%%
+    echo echo %%_tail%%
+    echo.
+    echo if "%%1" == "no-mintty" (
+    echo     "%%CYGWIN_ROOT%%\bin\bash.exe" --login -i %%_tail%% ^|^| goto :fail
     echo ^) else (
-    echo   if "%%1" == "no-mintty" (
-    echo     bash --login -i ^|^| goto :fail
-    echo   ^) else (
-    echo     bash --login -c %%* ^|^| goto :fail
-    echo   ^)
+    echo     if "%%1" == "mintty" (
+    echo         "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%_tail%% - ^|^| goto :fail
+    echo     ^) else (
+    echo         "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%* /bin/bash -l -c "cd '%%CYGWINCWD%%'; bash" ^|^| goto :fail
+    echo     ^)
     echo ^)
-    echo.
-    echo cd "%%CWD%%" ^|^| goto :fail
     echo.
     echo :: Exit the batch file, without closing the cmd.exe, if called from another script
     echo goto :eof
