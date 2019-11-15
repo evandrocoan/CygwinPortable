@@ -83,24 +83,24 @@ set CON_EMU_OPTIONS=-Title Cygwin-portable ^
 set "CYGWIN_PATH=%%SystemRoot%%\system32;%%SystemRoot%%"
 
 :: set Mintty options, see https://cdn.rawgit.com/mintty/mintty/master/docs/mintty.1.html#CONFIGURATION
-rem set MINTTY_OPTIONS=--Title Cygwin-portable ^
-rem   -o Columns=160 ^
-rem   -o Rows=50 ^
-rem   -o BellType=0 ^
-rem   -o ClicksPlaceCursor=yes ^
-rem   -o CursorBlinks=yes ^
-rem   -o CursorColour=96,96,255 ^
-rem   -o CursorType=Block ^
-rem   -o CopyOnSelect=yes ^
-rem   -o RightClickAction=Paste ^
-rem   -o Font="Courier New" ^
-rem   -o FontHeight=10 ^
-rem   -o FontSmoothing=None ^
-rem   -o ScrollbackLines=10000 ^
-rem   -o Transparency=off ^
-rem   -o Term=xterm-256color ^
-rem   -o Charset=UTF-8 ^
-rem   -o Locale=C
+:: set MINTTY_OPTIONS=--Title Cygwin-portable ^
+::   -o Columns=160 ^
+::   -o Rows=50 ^
+::   -o BellType=0 ^
+::   -o ClicksPlaceCursor=yes ^
+::   -o CursorBlinks=yes ^
+::   -o CursorColour=96,96,255 ^
+::   -o CursorType=Block ^
+::   -o CopyOnSelect=yes ^
+::   -o RightClickAction=Paste ^
+::   -o Font="Courier New" ^
+::   -o FontHeight=10 ^
+::   -o FontSmoothing=None ^
+::   -o ScrollbackLines=10000 ^
+::   -o Transparency=off ^
+::   -o Term=xterm-256color ^
+::   -o Charset=UTF-8 ^
+::   -o Locale=C
 
 :: ============================================================================================================
 :: CONFIG CUSTOMIZATION END
@@ -240,11 +240,11 @@ set "Updater_cmd=%INSTALL_ROOT%\cygwin-updater.cmd"
 echo Creating updater [%Updater_cmd%]...
 (
     echo @echo off
-    echo rem https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
+    echo :: https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
     echo set "CYGWIN_ROOT=%%~dp0.\Cygwin"
     echo set "CYGWIN_PROXY=%CYGWIN_PROXY%"
     echo.
-    echo rem change the URL to the closest mirror https://cygwin.com/mirrors.html
+    echo :: change the URL to the closest mirror https://cygwin.com/mirrors.html
     echo set CYGWIN_MIRROR=%CYGWIN_MIRROR%
     echo.
     echo echo.
@@ -273,7 +273,7 @@ echo Creating updater [%Updater_cmd%]...
     echo echo ###########################################################
     echo.
     echo :typeitright1
-    echo rem timeout /T 60
+    echo :: timeout /T 60
     echo set /p "UserInputPath=Type 'exit' to quit... "
     echo if not "%%UserInputPath%%" == "exit" goto typeitright1
     echo echo exit /0
@@ -288,7 +288,7 @@ echo Creating updater [%Updater_cmd%]...
     echo echo ###########################################################
     echo.
     echo :typeitright2
-    echo rem timeout /T 60
+    echo :: timeout /T 60
     echo set /p "UserInputPath=Type 'exit' to quit... "
     echo if not "%%UserInputPath%%" == "exit" goto typeitright2
     echo exit /1
@@ -492,7 +492,7 @@ echo Creating launcher [%Start_cmd%]...
     echo setlocal enabledelayedexpansion
     echo set "CWD=%%cd%%"
     echo set "CYGWIN_DRIVE=%%~d0"
-    echo rem https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
+    echo :: https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
     echo set "CYGWIN_ROOT=%%~dp0.\Cygwin"
     echo.
     echo for %%%%i in ^(adb.exe^) do ^(
@@ -562,7 +562,7 @@ echo Creating launcher [%Start_cmd%]...
     echo goto :eof
     echo.
     echo :fail
-    echo rem timeout /T 60
+    echo :: timeout /T 60
     echo set /p "UserInputPath=Type 'exit' to quit... "
     echo if not "%UserInputPath%" == "exit" goto fail
 ) >"%Start_cmd%" || goto :fail
@@ -576,7 +576,7 @@ echo Creating launcher [%Start_Mintty%]...
     echo @echo on
     echo setlocal enabledelayedexpansion
     echo.
-    echo rem https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
+    echo :: https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
     echo set "CWD=%%cd%%"
     echo set "CYGWIN_DRIVE=%%~d0"
     echo set "CYGWIN_ROOT=%%~dp0.\Cygwin"
@@ -608,7 +608,7 @@ echo Creating launcher [%Start_Mintty%]...
     echo goto :eof
     echo.
     echo :fail
-    echo rem timeout /T 60
+    echo :: timeout /T 60
     echo set /p "UserInputPath=Type 'exit' to quit... "
     echo if not "%UserInputPath%" == "exit" goto fail
 ) >"%Start_Mintty%" || goto :fail
@@ -798,7 +798,7 @@ echo Use [%Start_cmd%] to launch Cygwin Portable.
 echo.
 
 :typeitright1
-rem timeout /T 60
+:: timeout /T 60
 set /p "UserInputPath=Type 'exit' to quit... "
 if not "%UserInputPath%" == "exit" goto typeitright1
 
@@ -816,7 +816,7 @@ goto :eof
     echo.
 
     :typeitright2
-    rem timeout /T 60
+    :: timeout /T 60
     set /p "UserInputPath=Type 'exit' to quit... "
     if not "%UserInputPath%" == "exit" goto typeitright2
     exit /b 1
