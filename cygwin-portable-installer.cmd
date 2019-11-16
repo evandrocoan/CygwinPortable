@@ -84,8 +84,7 @@ set TESTSSL_GIT_BRANCH=v2.9.5-8
 
 :: use ConEmu based tabbed terminal instead of Mintty based single window terminal, see https://conemu.github.io/
 set INSTALL_CONEMU=no
-set CON_EMU_OPTIONS=-Title Cygwin-portable ^
- -QuitOnClose
+set CON_EMU_OPTIONS=-Title Cygwin-portable -QuitOnClose
 
 :: add more path if required, but at the cost of runtime performance (e.g. slower forks)
 set "CYGWIN_PATH=%%SystemRoot%%\system32;%%SystemRoot%%"
@@ -123,18 +122,36 @@ echo.
 :: Avoid conflicts with another Cygwin installation already on the system path
 :: https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
 set "CYGWIN_DRIVE=%~d0"
-set "INSTALL_ROOT=%~dp0.\PortableCygwin"
+set "ACTUAL_ROOT=%~dp0."
+set "INSTALL_ROOT=%ACTUAL_ROOT%\PortableCygwin"
+
+:: Automatically goes into dry run if the installation directories already exists
+if exist "%ACTUAL_ROOT%\cygwin-updater.cmd" set "INSTALL_ROOT=%ACTUAL_ROOT%"
+if exist "%ACTUAL_ROOT%\Cygwin\portable-init.sh" set "INSTALL_ROOT=%ACTUAL_ROOT%"
+
 set "CYGWIN_ROOT=%INSTALL_ROOT%\Cygwin"
 set "PATH=%SystemRoot%\system32;%SystemRoot%;%CYGWIN_ROOT%\bin;%ADB_PATH%"
 
 :: https://stackoverflow.com/questions/2541767/what-is-the-proper-way-to-test-if-a-parameter-is-empty-in-a-batch-file
 IF "%~1" == "-d" set "DRY_RUN_MODE=yes"
+IF "%~1" == "-dr" set "DRY_RUN_MODE=yes"
 IF "%~1" == "--dry-run" set "DRY_RUN_MODE=yes"
+
+:: When the installation is finished, exit the installer, instead of waiting
+IF "%~1" == "-e" set "ALWAYS_EXIT_MODE=yes"
+IF "%~1" == "-ae" set "ALWAYS_EXIT_MODE=yes"
+IF "%~1" == "--always-exit" set "ALWAYS_EXIT_MODE=yes"
+
+:: Automatically goes into dry run if the installation directories already exists
+if exist "%CYGWIN_ROOT%\portable-init.sh" set "DRY_RUN_MODE=yes"
+if exist "%INSTALL_ROOT%\cygwin-updater.cmd" set "DRY_RUN_MODE=yes"
+
 IF NOT "%DRY_RUN_MODE%" == "yes" set "DRY_RUN_MODE=no"
+IF NOT "%ALWAYS_EXIT_MODE%" == "yes" set "ALWAYS_EXIT_MODE=no"
 
 :: load customizations from separate file if exists
-if exist %INSTALL_ROOT%cygwin-portable-installer-config.cmd (
-  call %INSTALL_ROOT%cygwin-portable-installer-config.cmd
+if exist %INSTALL_ROOT%\cygwin-portable-installer-config.cmd (
+    call %INSTALL_ROOT%\cygwin-portable-installer-config.cmd
 )
 
 echo Creating Cygwin root [%CYGWIN_ROOT%]...
@@ -144,7 +161,7 @@ if not exist "%CYGWIN_ROOT%" (
 
 :: create VB script that can download files
 :: not using PowerShell which may be blocked by group policies
-set "DOWNLOADER=%INSTALL_ROOT%\downloader.vbs"
+set "DOWNLOADER=%CYGWIN_ROOT%\downloader.vbs"
 echo Creating [%DOWNLOADER%] script...
 
 if "%PROXY_HOST%" == "" (
@@ -205,7 +222,6 @@ if exist "%CYGWIN_ROOT%\%CYGWIN_SETUP%" (
     del "%CYGWIN_ROOT%\%CYGWIN_SETUP%" || goto :fail
 )
 cscript //Nologo "%DOWNLOADER%" https://cygwin.org/%CYGWIN_SETUP% "%CYGWIN_ROOT%\%CYGWIN_SETUP%" || goto :fail
-del "%DOWNLOADER%"
 :skipdownloader
 
 :: Cygwin command line options: https://cygwin.com/faq/faq.html#faq.setup.cli
@@ -344,18 +360,6 @@ echo Creating updater [%Updater_cmd%]...
     echo if not "%%UserInputPath%%" == "out" goto typeitrightupdatefailed
     echo exit /1
 ) >"%Updater_cmd%" || goto :fail
-
-:: https://stackoverflow.com/questions/9102422/windows-batch-set-inside-if-not-working
-set "Cygwin_bat=%CYGWIN_ROOT%\Cygwin.bat"
-set "Cygwin_prompt=cygwin-prompt.bat"
-
-if exist "%Cygwin_bat%" (
-    echo Disabling default Cygwin launcher [%Cygwin_bat%]...
-    if exist "%CYGWIN_ROOT%\%Cygwin_prompt%" (
-        del "%CYGWIN_ROOT%\%Cygwin_prompt%" || goto :fail
-    )
-    rename "%Cygwin_bat%" "%Cygwin_prompt%" || goto :fail
-)
 
 set "Init_sh=%CYGWIN_ROOT%\portable-init.sh"
 echo Creating [%Init_sh%]...
@@ -555,7 +559,7 @@ echo Creating [%Init_sh%]...
 ) >"%Init_sh%" || goto :fail
 
 IF EXIST "%CYGWIN_ROOT%\bin\dos2unix.exe" "%CYGWIN_ROOT%\bin\dos2unix" "%Init_sh%" || goto :fail
-IF EXIST "%CYGWIN_ROOT%\bin\dos2unix.exe" echo "Warning: dos2unix does not exists" && pause || goto :fail
+IF NOT EXIST "%CYGWIN_ROOT%\bin\dos2unix.exe" echo "Warning: dos2unix does not exists" && pause || goto :fail
 
 set "Start_cmd=%INSTALL_ROOT%\cygwin-environment.cmd"
 echo Creating launcher [%Start_cmd%]...
@@ -606,10 +610,10 @@ echo Creating launcher [%Start_cmd%]...
     echo      ^) ^> "%%CYGWIN_ROOT%%\etc\fstab" ^|^| goto :fail
     echo ^)
     echo.
-    echo "%%CYGWIN_ROOT%%\bin\bash.exe" "%%CYGWIN_ROOT%%\portable-init.sh" ^|^| goto :fail
+    echo "%%CYGWIN_ROOT%%\bin\bash" "%%CYGWIN_ROOT%%\portable-init.sh" ^|^| goto :fail
     echo.
     echo :: https://stackoverflow.com/questions/57651023/how-do-i-run-a-command-with-spaces-on-the-name-the-filename-directory-name-or
-    echo for /F "tokens=*" %%%%g in ^('^^""%%CYGWIN_ROOT%%\bin\cygpath.exe" -u "%%CWD%%"^"'^) do ^(
+    echo for /F "tokens=*" %%%%g in ^('^^""%%CYGWIN_ROOT%%\bin\cygpath" -u "%%CWD%%"^"'^) do ^(
     echo     set "CYGWINCWD=%%%%g"
     echo ^) ^|^| goto :fail
     echo.
@@ -621,21 +625,21 @@ echo Creating launcher [%Start_cmd%]...
     echo.
     echo :: https://stackoverflow.com/questions/58885168/error-1-was-unexpected-at-this-time-when-first-command-line-argument-is-dou
     echo if "%%~1" == "bash" (
-    echo     "%%CYGWIN_ROOT%%\bin\bash.exe" --login -i %%_tail%% ^|^| goto :fail
+    echo     "%%CYGWIN_ROOT%%\bin\bash" --login -i %%_tail%% ^|^| goto :fail
     echo ^) else (
     echo     :: https://stackoverflow.com/questions/58885168/error-1-was-unexpected-at-this-time-when-first-command-line-argument-is-dou
     echo     if "%%~1" == "mintty" (
-    echo         "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold always --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%_tail%% ^|^| goto :fail
+    echo         "%%CYGWIN_ROOT%%\bin\mintty" --hold always --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%_tail%% ^|^| goto :fail
     echo     ^) else (
     echo         :: INSTALL_CONEMU? == '%INSTALL_CONEMU%'
     echo         if "%INSTALL_CONEMU%" == "yes" (
     echo             if "%CYGWIN_ARCH%" == "64" (
-    echo                 start "" "%%~dp0.\conemu\ConEmu64.exe" %CON_EMU_OPTIONS% %%* ^|^| goto :fail
+    echo                 start "" "%%~dp0.\conemu\ConEmu64" %CON_EMU_OPTIONS% %%* ^|^| goto :fail
     echo             ^) else (
-    echo                 start "" "%%~dp0.\conemu\ConEmu.exe" %CON_EMU_OPTIONS% %%* ^|^| goto :fail
+    echo                 start "" "%%~dp0.\conemu\ConEmu" %CON_EMU_OPTIONS% %%* ^|^| goto :fail
     echo             ^)
     echo         ^) else (
-    echo             "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%* /bin/bash -l -c "cd '%%CYGWINCWD%%'; bash" ^|^| goto :fail
+    echo             "%%CYGWIN_ROOT%%\bin\mintty" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%* /bin/bash -l -c "cd '%%CYGWINCWD%%'; bash" ^|^| goto :fail
     echo         ^)
     echo     ^)
     echo ^)
@@ -677,7 +681,7 @@ echo Creating launcher [%Start_Mintty%]...
     echo set "GRP="
     echo.
     echo :: https://stackoverflow.com/questions/57651023/how-do-i-run-a-command-with-spaces-on-the-name-the-filename-directory-name-or
-    echo for /F "tokens=*" %%%%g in ^('^^""%%CYGWIN_ROOT%%\bin\cygpath.exe" -u "%%CWD%%"^"'^) do ^(
+    echo for /F "tokens=*" %%%%g in ^('^^""%%CYGWIN_ROOT%%\bin\cygpath" -u "%%CWD%%"^"'^) do ^(
     echo     set "CYGWINCWD=%%%%g"
     echo ^) ^|^| goto :fail
     echo.
@@ -689,21 +693,21 @@ echo Creating launcher [%Start_Mintty%]...
     echo.
     echo :: https://stackoverflow.com/questions/58885168/error-1-was-unexpected-at-this-time-when-first-command-line-argument-is-dou
     echo if "%%~1" == "bash" (
-    echo     "%%CYGWIN_ROOT%%\bin\bash.exe" --login -i %%_tail%% ^|^| goto :fail
+    echo     "%%CYGWIN_ROOT%%\bin\bash" --login -i %%_tail%% ^|^| goto :fail
     echo ^) else (
     echo     :: https://stackoverflow.com/questions/58885168/error-1-was-unexpected-at-this-time-when-first-command-line-argument-is-dou
     echo     if "%%~1" == "mintty" (
-    echo         "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold always --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%_tail%% ^|^| goto :fail
+    echo         "%%CYGWIN_ROOT%%\bin\mintty" --hold always --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%_tail%% ^|^| goto :fail
     echo     ^) else (
     echo         :: INSTALL_CONEMU? == '%INSTALL_CONEMU%'
     echo         if "%INSTALL_CONEMU%" == "yes" (
     echo             if "%CYGWIN_ARCH%" == "64" (
-    echo                 start "" "%%~dp0.\conemu\ConEmu64.exe" %CON_EMU_OPTIONS% %%* ^|^| goto :fail
+    echo                 start "" "%%~dp0.\conemu\ConEmu64" %CON_EMU_OPTIONS% %%* ^|^| goto :fail
     echo             ^) else (
-    echo                 start "" "%%~dp0.\conemu\ConEmu.exe" %CON_EMU_OPTIONS% %%* ^|^| goto :fail
+    echo                 start "" "%%~dp0.\conemu\ConEmu" %CON_EMU_OPTIONS% %%* ^|^| goto :fail
     echo             ^)
     echo         ^) else (
-    echo             "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%* /bin/bash -l -c "cd '%%CYGWINCWD%%'; bash" ^|^| goto :fail
+    echo             "%%CYGWIN_ROOT%%\bin\mintty" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%* /bin/bash -l -c "cd '%%CYGWINCWD%%'; bash" ^|^| goto :fail
     echo         ^)
     echo     ^)
     echo ^)
@@ -721,7 +725,7 @@ echo Creating launcher [%Start_Mintty%]...
 set "InstallImprovedSettings=%CYGWIN_ROOT%\cygwin-install-improved-settings.sh"
 
 :: https://stackoverflow.com/questions/57651023/how-do-i-run-a-command-with-spaces-on-the-name-the-filename-directory-name-or
-for /F "tokens=*" %%g in ('^""%CYGWIN_ROOT%\bin\cygpath.exe" -u "%InstallImprovedSettings%"^"') do (
+for /F "tokens=*" %%g in ('^""%CYGWIN_ROOT%\bin\cygpath" -u "%InstallImprovedSettings%"^"') do (
     set "InstallImprovedSettingsUnix=%%g"
 ) || goto :fail
 
@@ -741,7 +745,7 @@ if "%INSTALL_IMPROVED_USER_SETTINGS%" == "yes" (
         echo.
     ) >"%InstallImprovedSettings%" || goto :fail
     IF EXIST "%CYGWIN_ROOT%\bin\dos2unix.exe" "%CYGWIN_ROOT%\bin\dos2unix" "%InstallImprovedSettings%" || goto :fail
-    IF EXIST "%CYGWIN_ROOT%\bin\dos2unix.exe" echo "Warning: dos2unix does not exists" && pause || goto :fail
+    IF NOT EXIST "%CYGWIN_ROOT%\bin\dos2unix.exe" echo "Warning: dos2unix does not exists" && pause || goto :fail
 
     IF NOT "%DRY_RUN_MODE%" == "yes" "%CYGWIN_ROOT%\bin\bash" "%InstallImprovedSettingsUnix%" || goto :fail
     IF NOT "%DRY_RUN_MODE%" == "yes" "%CYGWIN_ROOT%\bin\rm" -f "%InstallImprovedSettingsUnix%" || goto :fail
@@ -905,7 +909,7 @@ if "%INSTALL_BASH_FUNK%" == "yes" (
 )
 
 IF EXIST "%CYGWIN_ROOT%\bin\dos2unix.exe" "%CYGWIN_ROOT%\bin\dos2unix" "%Bashrc_sh%" || goto :fail
-IF EXIST "%CYGWIN_ROOT%\bin\dos2unix.exe" echo "Warning: dos2unix does not exists" && pause || goto :fail
+IF NOT EXIST "%CYGWIN_ROOT%\bin\dos2unix.exe" echo "Warning: dos2unix does not exists" && pause || goto :fail
 GOTO :installingcygwinsucceed
 
 :afterbashrcinstallations
@@ -926,17 +930,16 @@ echo Use [%Start_cmd%] to launch Cygwin Portable.
 echo.
 
 :typeitrightinstallationend
-:: timeout /T 60
+if "%ALWAYS_EXIT_MODE%" == "yes" timeout /T 60 && goto :exitwithouterror
+
 set /p "UserInputPath=Type 'out' to quit... "
 if not "%UserInputPath%" == "out" goto typeitrightinstallationend
 
 :: Exit the batch file, without closing the cmd.exe, if called from another script
+:exitwithouterror
 goto :eof
 
 :fail
-if exist "%DOWNLOADER%" (
-    del "%DOWNLOADER%"
-)
 echo.
 echo ###########################################################
 echo # Installing [Cygwin Portable] FAILED!
@@ -944,7 +947,10 @@ echo ###########################################################
 echo.
 
 :typeitrightinstallationfailed
-:: timeout /T 60
+if "%ALWAYS_EXIT_MODE%" == "yes" timeout /T 60 && goto :exitwitherror
+
 set /p "UserInputPath=Type 'out' to quit... "
 if not "%UserInputPath%" == "out" goto typeitrightinstallationfailed
+
+:exitwitherror
 exit /b 1

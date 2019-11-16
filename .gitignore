@@ -1,12 +1,13 @@
 /.project
 /_gsdata_
 /cygwin
-*.sublime-workspace
-/cygwin-portable-updater.cmd
 /cygwin-portable.cmd
+/cygwin-portable-updater.cmd
+/cygwin-portable-installer-config.cmd
+/conemu
 .settings/
 **/.*.md.html
-/conemu
+*.sublime-workspace
 *.log
 *.log.full
 **
