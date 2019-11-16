@@ -325,8 +325,8 @@ echo Creating updater [%Updater_cmd%]...
     echo.
     echo :typeitrightupdatesucceed
     echo :: timeout /T 60
-    echo set /p "UserInputPath=Type 'exit' to quit... "
-    echo if not "%%UserInputPath%%" == "exit" goto typeitrightupdatesucceed
+    echo set /p "UserInputPath=Type 'out' to quit... "
+    echo if not "%%UserInputPath%%" == "out" goto typeitrightupdatesucceed
     echo echo exit /0
     echo.
     echo :: Exit the batch file, without closing the cmd.exe, if called from another script
@@ -340,8 +340,8 @@ echo Creating updater [%Updater_cmd%]...
     echo.
     echo :typeitrightupdatefailed
     echo :: timeout /T 60
-    echo set /p "UserInputPath=Type 'exit' to quit... "
-    echo if not "%%UserInputPath%%" == "exit" goto typeitrightupdatefailed
+    echo set /p "UserInputPath=Type 'out' to quit... "
+    echo if not "%%UserInputPath%%" == "out" goto typeitrightupdatefailed
     echo exit /1
 ) >"%Updater_cmd%" || goto :fail
 
@@ -387,7 +387,7 @@ echo Creating [%Init_sh%]...
     echo         echo $USERNAME:unused:1001:$GID:$USER_SID:$HOME:/bin/bash ^>^> /etc/passwd
     echo     fi
     echo.
-    echo     cp -rn /etc/skel /home/$USERNAME
+    echo     # cp -rn /etc/skel /home/$USERNAME
     echo.
     echo     # already set in cygwin-environment.cmd:
     echo     # export CYGWIN_ROOT="$(cygpath -w /^)"
@@ -554,7 +554,8 @@ echo Creating [%Init_sh%]...
     echo fi
 ) >"%Init_sh%" || goto :fail
 
-"%CYGWIN_ROOT%\bin\dos2unix" "%Init_sh%" || goto :fail
+IF EXIST "%CYGWIN_ROOT%\bin\dos2unix.exe" "%CYGWIN_ROOT%\bin\dos2unix" "%Init_sh%" || goto :fail
+IF EXIST "%CYGWIN_ROOT%\bin\dos2unix.exe" echo "Warning: dos2unix does not exists" && pause || goto :fail
 
 set "Start_cmd=%INSTALL_ROOT%\cygwin-environment.cmd"
 echo Creating launcher [%Start_cmd%]...
@@ -574,7 +575,7 @@ echo Creating launcher [%Start_cmd%]...
     echo set "PATH=%CYGWIN_PATH%;%%CYGWIN_ROOT%%\bin;%%ADB_PATH%%"
     echo set "ALLUSERSPROFILE=%%CYGWIN_ROOT%%\.ProgramData"
     echo set "ProgramData=%%ALLUSERSPROFILE%%"
-    echo set "CYGWIN=nodosfilewarning"
+    echo :: set "CYGWIN=nodosfilewarning"
     echo.
     echo set "USERNAME=%CYGWIN_USERNAME%"
     echo set "HOME=/home/%%USERNAME%%"
@@ -619,22 +620,23 @@ echo Creating launcher [%Start_cmd%]...
     echo echo %%_tail%%
     echo.
     echo :: https://stackoverflow.com/questions/58885168/error-1-was-unexpected-at-this-time-when-first-command-line-argument-is-dou
-    echo if "%%~1" == "no-mintty" (
+    echo if "%%~1" == "bash" (
     echo     "%%CYGWIN_ROOT%%\bin\bash.exe" --login -i %%_tail%% ^|^| goto :fail
     echo ^) else (
     echo     :: https://stackoverflow.com/questions/58885168/error-1-was-unexpected-at-this-time-when-first-command-line-argument-is-dou
     echo     if "%%~1" == "mintty" (
-    echo         "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%_tail%% - ^|^| goto :fail
+    echo         "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold always --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%_tail%% ^|^| goto :fail
     echo     ^) else (
-    if "%INSTALL_CONEMU%" == "yes" (
-        if "%CYGWIN_ARCH%" == "64" (
-    echo         start "" "%%~dp0.\conemu\ConEmu64.exe" %CON_EMU_OPTIONS% %%* ^|^| goto :fail
-        ) else (
-    echo         start "" "%%~dp0.\conemu\ConEmu.exe" %CON_EMU_OPTIONS% %%* ^|^| goto :fail
-        )
-    ) else (
-    echo         "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%* /bin/bash -l -c "cd '%%CYGWINCWD%%'; bash" ^|^| goto :fail
-    )
+    echo         :: INSTALL_CONEMU? == '%INSTALL_CONEMU%'
+    echo         if "%INSTALL_CONEMU%" == "yes" (
+    echo             if "%CYGWIN_ARCH%" == "64" (
+    echo                 start "" "%%~dp0.\conemu\ConEmu64.exe" %CON_EMU_OPTIONS% %%* ^|^| goto :fail
+    echo             ^) else (
+    echo                 start "" "%%~dp0.\conemu\ConEmu.exe" %CON_EMU_OPTIONS% %%* ^|^| goto :fail
+    echo             ^)
+    echo         ^) else (
+    echo             "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%* /bin/bash -l -c "cd '%%CYGWINCWD%%'; bash" ^|^| goto :fail
+    echo         ^)
     echo     ^)
     echo ^)
     echo.
@@ -643,12 +645,12 @@ echo Creating launcher [%Start_cmd%]...
     echo.
     echo :fail
     echo :: timeout /T 60
-    echo set /p "UserInputPath=Type 'exit' to quit... "
-    echo if not "%UserInputPath%" == "exit" goto fail
+    echo set /p "UserInputPath=Type 'out' to quit... "
+    echo if not "%%UserInputPath%%" == "out" goto fail
 ) >"%Start_cmd%" || goto :fail
 
 :: launching Bash once to initialize user home dir
-IF NOT "%DRY_RUN_MODE%" == "yes" call "%Start_cmd%" whoami || goto :fail
+IF NOT "%DRY_RUN_MODE%" == "yes" call "%Start_cmd%" mintty whoami || goto :fail
 
 set Start_Mintty=%INSTALL_ROOT%\cygwin-terminal.cmd
 echo Creating launcher [%Start_Mintty%]...
@@ -660,6 +662,11 @@ echo Creating launcher [%Start_Mintty%]...
     echo set "CWD=%%cd%%"
     echo set "CYGWIN_DRIVE=%%~d0"
     echo set "CYGWIN_ROOT=%%~dp0.\Cygwin"
+    echo.
+    echo set "PATH=%%PATH%%;%%CYGWIN_ROOT%%\bin;"
+    echo :: set "ALLUSERSPROFILE=%%CYGWIN_ROOT%%\.ProgramData"
+    echo :: set "ProgramData=%%ALLUSERSPROFILE%%"
+    echo :: set "CYGWIN=nodosfilewarning"
     echo.
     echo set "USERNAME=%CYGWIN_USERNAME%"
     echo set "HOME=/home/%%USERNAME%%"
@@ -681,14 +688,23 @@ echo Creating launcher [%Start_Mintty%]...
     echo echo %%_tail%%
     echo.
     echo :: https://stackoverflow.com/questions/58885168/error-1-was-unexpected-at-this-time-when-first-command-line-argument-is-dou
-    echo if "%%~1" == "no-mintty" (
+    echo if "%%~1" == "bash" (
     echo     "%%CYGWIN_ROOT%%\bin\bash.exe" --login -i %%_tail%% ^|^| goto :fail
     echo ^) else (
     echo     :: https://stackoverflow.com/questions/58885168/error-1-was-unexpected-at-this-time-when-first-command-line-argument-is-dou
     echo     if "%%~1" == "mintty" (
-    echo         "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%_tail%% - ^|^| goto :fail
+    echo         "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold always --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%_tail%% ^|^| goto :fail
     echo     ^) else (
-    echo         "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%* /bin/bash -l -c "cd '%%CYGWINCWD%%'; bash" ^|^| goto :fail
+    echo         :: INSTALL_CONEMU? == '%INSTALL_CONEMU%'
+    echo         if "%INSTALL_CONEMU%" == "yes" (
+    echo             if "%CYGWIN_ARCH%" == "64" (
+    echo                 start "" "%%~dp0.\conemu\ConEmu64.exe" %CON_EMU_OPTIONS% %%* ^|^| goto :fail
+    echo             ^) else (
+    echo                 start "" "%%~dp0.\conemu\ConEmu.exe" %CON_EMU_OPTIONS% %%* ^|^| goto :fail
+    echo             ^)
+    echo         ^) else (
+    echo             "%%CYGWIN_ROOT%%\bin\mintty.exe" --hold error --nopin %MINTTY_OPTIONS% --icon "%%CYGWIN_ROOT%%\Cygwin-Terminal.ico" %%* /bin/bash -l -c "cd '%%CYGWINCWD%%'; bash" ^|^| goto :fail
+    echo         ^)
     echo     ^)
     echo ^)
     echo.
@@ -697,8 +713,8 @@ echo Creating launcher [%Start_Mintty%]...
     echo.
     echo :fail
     echo :: timeout /T 60
-    echo set /p "UserInputPath=Type 'exit' to quit... "
-    echo if not "%UserInputPath%" == "exit" goto fail
+    echo set /p "UserInputPath=Type 'out' to quit... "
+    echo if not "%%UserInputPath%%" == "out" goto fail
 ) >"%Start_Mintty%" || goto :fail
 
 :: https://stackoverflow.com/questions/9102422/windows-batch-set-inside-if-not-working
@@ -724,7 +740,8 @@ if "%INSTALL_IMPROVED_USER_SETTINGS%" == "yes" (
         echo /bin/rm -rf "/home/%CYGWIN_USERNAME%/Downloads/MyLinuxSettings/" ^|^| exit $?
         echo.
     ) >"%InstallImprovedSettings%" || goto :fail
-    "%CYGWIN_ROOT%\bin\dos2unix" "%InstallImprovedSettings%" || goto :fail
+    IF EXIST "%CYGWIN_ROOT%\bin\dos2unix.exe" "%CYGWIN_ROOT%\bin\dos2unix" "%InstallImprovedSettings%" || goto :fail
+    IF EXIST "%CYGWIN_ROOT%\bin\dos2unix.exe" echo "Warning: dos2unix does not exists" && pause || goto :fail
 
     IF NOT "%DRY_RUN_MODE%" == "yes" "%CYGWIN_ROOT%\bin\bash" "%InstallImprovedSettingsUnix%" || goto :fail
     IF NOT "%DRY_RUN_MODE%" == "yes" "%CYGWIN_ROOT%\bin\rm" -f "%InstallImprovedSettingsUnix%" || goto :fail
@@ -887,7 +904,8 @@ if "%INSTALL_BASH_FUNK%" == "yes" (
     )
 )
 
-"%CYGWIN_ROOT%\bin\dos2unix" "%Bashrc_sh%" || goto :fail
+IF EXIST "%CYGWIN_ROOT%\bin\dos2unix.exe" "%CYGWIN_ROOT%\bin\dos2unix" "%Bashrc_sh%" || goto :fail
+IF EXIST "%CYGWIN_ROOT%\bin\dos2unix.exe" echo "Warning: dos2unix does not exists" && pause || goto :fail
 GOTO :installingcygwinsucceed
 
 :afterbashrcinstallations
@@ -909,8 +927,8 @@ echo.
 
 :typeitrightinstallationend
 :: timeout /T 60
-set /p "UserInputPath=Type 'exit' to quit... "
-if not "%UserInputPath%" == "exit" goto typeitrightinstallationend
+set /p "UserInputPath=Type 'out' to quit... "
+if not "%UserInputPath%" == "out" goto typeitrightinstallationend
 
 :: Exit the batch file, without closing the cmd.exe, if called from another script
 goto :eof
@@ -927,6 +945,6 @@ echo.
 
 :typeitrightinstallationfailed
 :: timeout /T 60
-set /p "UserInputPath=Type 'exit' to quit... "
-if not "%UserInputPath%" == "exit" goto typeitrightinstallationfailed
+set /p "UserInputPath=Type 'out' to quit... "
+if not "%UserInputPath%" == "out" goto typeitrightinstallationfailed
 exit /b 1
