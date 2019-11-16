@@ -305,7 +305,7 @@ if "%DELETE_CYGWIN_PACKAGE_CACHE%" == "yes" (
 set "Updater_cmd=%INSTALL_ROOT%\cygwin-updater.cmd"
 echo Creating updater [%Updater_cmd%]...
 (
-    echo @echo off
+    echo @echo on
     echo.
     echo :: https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
     echo set "CYGWIN_ROOT=%%~dp0.\Cygwin"
