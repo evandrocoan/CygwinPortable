@@ -5,6 +5,7 @@
 1. [What is it?](#what-is-it)
 1. [Features](#features)
 1. [Installation](#install)
+   1. [Customizing the installer](#customize)
 1. [Update](#update)
 1. [License](#license)
 
@@ -63,6 +64,113 @@ See also:
     1. install [testssl.sh](https://testssl.sh/)
 1. Now you can launch your portable Cygwin environment using the newly created `cygwin-portable.cmd` batch file.
     ![Launch Script](launch_script.png)
+
+
+### <a name="customize"></a>Customizing the installer
+
+You can customize the installer by either directly modifying the default settings in the `cygwin-portable-installer.cmd` file,
+or by placing a separate file called `cygwin-portable-installer-config.cmd` next where some or all of these settings are overwritten.
+
+These settings are currently available:
+
+```batch
+:: ############################################################################################################
+:: CONFIG CUSTOMIZATION START
+:: You can customize the following variables to your needs before running the batch file
+:: ############################################################################################################
+
+:: Only generate the configuration files, do not install anything
+:: It can also be enabled by the command line with the argument -d or --dry-run
+set "DRY_RUN_MODE="
+:: set "DRY_RUN_MODE=yes"
+
+:: set proxy if required (unfortunately Cygwin setup.exe does not have commandline options to specify proxy user credentials)
+set PROXY_HOST=
+set PROXY_PORT=8080
+
+:: change the URL to the closest mirror https://cygwin.com/mirrors.html
+set CYGWIN_MIRROR=http://cygwin.mirror.constant.com/
+
+:: if set to yes, then, a different user than your current computer account will be created.
+:: if set to no, then, you need to set CYGWIN_USERNAME to your current computer user name.
+set CREATE_ROOT_USER=no
+
+:: choose a user name under Cygwin
+set CYGWIN_USERNAME=root
+if not "%CREATE_ROOT_USER%"=="yes" set "CYGWIN_USERNAME=%USERNAME%"
+
+:: one of: auto,64,32 - specifies if 32 or 64 bit version should be installed or automatically detected based on current OS architecture
+set CYGWIN_ARCH=auto
+set INSTALL_IMPROVED_USER_SETTINGS=yes
+
+:: select the packages to be installed automatically via apt-cyg
+set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,git-svn,gnupg,inetutils,lz4,mc,nc,openssh,openssl,perl,psmisc,python3,pv,rsync,python2,python2-pip,python3-pip,python2-devel,python3-devel,screen,subversion,unzip,vim,wget,zip,zstd,graphviz,unison2.51,make,gcc-g++,ncdu,gdb,tree
+
+:: if set to 'yes' the local package cache created by cygwin setup will be deleted after installation/update
+set DELETE_CYGWIN_PACKAGE_CACHE=no
+
+:: if set to 'yes' the apt-cyg command line package manager (https://github.com/kou1okada/apt-cyg) will be installed automatically
+set INSTALL_APT_CYG=yes
+
+:: if set to 'yes' the bash-funk adaptive Bash prompt (https://github.com/vegardit/bash-funk) will be installed automatically
+set INSTALL_BASH_FUNK=no
+
+:: if set to 'yes' Node.js (https://nodejs.org/) will be installed automatically
+set INSTALL_NODEJS=yes
+:: Use of the folder names found here https://nodejs.org/dist/ as version name.
+set NODEJS_VERSION=latest-v12.x
+:: one of: auto,64,32 - specifies if 32 or 64 bit version should be installed or automatically detected based on current OS architecture
+set NODEJS_ARCH=auto
+
+:: if set to 'yes' Ansible (https://github.com/ansible/ansible) will be installed automatically
+set INSTALL_ANSIBLE=no
+set ANSIBLE_GIT_BRANCH=stable-2.9
+
+:: if set to 'yes' AWS CLI (https://github.com/aws/aws-cli) will be installed automatically
+set INSTALL_AWS_CLI=no
+
+:: if set to 'yes' SSH Memory Keys Passphrase Cache (https://github.com/cuviper/ssh-pageant) will be installed automatically
+set INSTALL_PAGEANT=no
+
+:: https://georgik.rocks/how-to-fix-incorrect-cygwin-permission-inwindows-7/
+set DISABLE_WINDOWS_ACL_HANDLING=no
+
+:: if set to 'yes' testssl.sh (https://testssl.sh/) will be installed automatically
+set INSTALL_TESTSSL_SH=yes
+:: name of the GIT branch to install from, see https://github.com/drwetter/testssl.sh/
+set TESTSSL_GIT_BRANCH=v2.9.5-8
+
+:: use ConEmu based tabbed terminal instead of Mintty based single window terminal, see https://conemu.github.io/
+set INSTALL_CONEMU=no
+set CON_EMU_OPTIONS=-Title Cygwin-portable -QuitOnClose
+
+:: add more path if required, but at the cost of runtime performance (e.g. slower forks)
+set "CYGWIN_PATH=%%SystemRoot%%\system32;%%SystemRoot%%"
+
+:: set Mintty options, see https://cdn.rawgit.com/mintty/mintty/master/docs/mintty.1.html#CONFIGURATION
+:: set MINTTY_OPTIONS=--Title Cygwin-portable ^
+::   -o Columns=160 ^
+::   -o Rows=50 ^
+::   -o BellType=0 ^
+::   -o ClicksPlaceCursor=yes ^
+::   -o CursorBlinks=yes ^
+::   -o CursorColour=96,96,255 ^
+::   -o CursorType=Block ^
+::   -o CopyOnSelect=yes ^
+::   -o RightClickAction=Paste ^
+::   -o Font="Courier New" ^
+::   -o FontHeight=10 ^
+::   -o FontSmoothing=None ^
+::   -o ScrollbackLines=10000 ^
+::   -o Transparency=off ^
+::   -o Term=xterm-256color ^
+::   -o Charset=UTF-8 ^
+::   -o Locale=C
+
+:: ############################################################################################################
+:: CONFIG CUSTOMIZATION END
+:: ############################################################################################################
+```
 
 
 ## Updating your installation
