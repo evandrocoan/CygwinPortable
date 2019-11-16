@@ -6,7 +6,7 @@
 :: @author Sebastian Thomschke, Vegard IT GmbH, Evandro Coan
 
 :: ABOUT
-:: =====
+:: #####
 :: This self-contained Windows batch file creates a portable Cygwin (https://cygwin.com/mirrors.html) installation.
 :: By default it automatically installs :
 :: - apt-cyg (cygwin command-line package manager, see https://github.com/kou1okada/apt-cyg)
@@ -16,13 +16,14 @@
 :: - AWS CLI (AWS cloud command line tool, see https://github.com/aws/aws-cli)
 :: - testssl.sh (command line tool to check SSL/TLS configurations of servers, see https://testssl.sh/)
 
-:: ============================================================================================================
+:: ############################################################################################################
 :: CONFIG CUSTOMIZATION START
 :: You can customize the following variables to your needs before running the batch file
-:: ============================================================================================================
+:: ############################################################################################################
 
 :: Only generate the configuration files, do not install anything
 :: It can also be enabled by the command line with the argument -d or --dry-run
+set "DRY_RUN_MODE="
 :: set "DRY_RUN_MODE=yes"
 
 :: set proxy if required (unfortunately Cygwin setup.exe does not have commandline options to specify proxy user credentials)
@@ -42,13 +43,12 @@ if not "%CREATE_ROOT_USER%"=="yes" set "CYGWIN_USERNAME=%USERNAME%"
 
 :: one of: auto,64,32 - specifies if 32 or 64 bit version should be installed or automatically detected based on current OS architecture
 set CYGWIN_ARCH=auto
-set INSTALL_NODEJS=yes
 set INSTALL_IMPROVED_USER_SETTINGS=yes
 
 :: select the packages to be installed automatically via apt-cyg
-set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,git-svn,gnupg,inetutils,lz4,mc,nc,openssh,openssl,perl,pv,screen,subversion,unzip,vim,wget,zip,zstd,python2,python3,python2-pip,python3-pip,python2-devel,python3-devel,graphviz,unison2.51,make,gcc-g++,ncdu,gdb,tree,psmisc,rsync
+set CYGWIN_PACKAGES=bash-completion,bc,curl,expect,git,git-svn,gnupg,inetutils,lz4,mc,nc,openssh,openssl,perl,psmisc,python3,pv,rsync,python2,python2-pip,python3-pip,python2-devel,python3-devel,screen,subversion,unzip,vim,wget,zip,zstd,graphviz,unison2.51,make,gcc-g++,ncdu,gdb,tree
 
-:: if set to 'yes' the local package cache created by Cygwin setup will be deleted after installation/update
+:: if set to 'yes' the local package cache created by cygwin setup will be deleted after installation/update
 set DELETE_CYGWIN_PACKAGE_CACHE=no
 
 :: if set to 'yes' the apt-cyg command line package manager (https://github.com/kou1okada/apt-cyg) will be installed automatically
@@ -57,9 +57,16 @@ set INSTALL_APT_CYG=yes
 :: if set to 'yes' the bash-funk adaptive Bash prompt (https://github.com/vegardit/bash-funk) will be installed automatically
 set INSTALL_BASH_FUNK=no
 
+:: if set to 'yes' Node.js (https://nodejs.org/) will be installed automatically
+set INSTALL_NODEJS=yes
+:: Use of the folder names found here https://nodejs.org/dist/ as version name.
+set NODEJS_VERSION=latest-v12.x
+:: one of: auto,64,32 - specifies if 32 or 64 bit version should be installed or automatically detected based on current OS architecture
+set NODEJS_ARCH=auto
+
 :: if set to 'yes' Ansible (https://github.com/ansible/ansible) will be installed automatically
 set INSTALL_ANSIBLE=no
-set ANSIBLE_GIT_BRANCH=stable-2.7
+set ANSIBLE_GIT_BRANCH=stable-2.9
 
 :: if set to 'yes' AWS CLI (https://github.com/aws/aws-cli) will be installed automatically
 set INSTALL_AWS_CLI=no
@@ -73,7 +80,7 @@ set DISABLE_WINDOWS_ACL_HANDLING=no
 :: if set to 'yes' testssl.sh (https://testssl.sh/) will be installed automatically
 set INSTALL_TESTSSL_SH=yes
 :: name of the GIT branch to install from, see https://github.com/drwetter/testssl.sh/
-set TESTSSL_GIT_BRANCH=2.9.5
+set TESTSSL_GIT_BRANCH=v2.9.5-8
 
 :: use ConEmu based tabbed terminal instead of Mintty based single window terminal, see https://conemu.github.io/
 set INSTALL_CONEMU=no
@@ -103,9 +110,9 @@ set "CYGWIN_PATH=%%SystemRoot%%\system32;%%SystemRoot%%"
 ::   -o Charset=UTF-8 ^
 ::   -o Locale=C
 
-:: ============================================================================================================
+:: ############################################################################################################
 :: CONFIG CUSTOMIZATION END
-:: ============================================================================================================
+:: ############################################################################################################
 
 echo.
 echo ###########################################################
@@ -121,9 +128,14 @@ set "CYGWIN_ROOT=%INSTALL_ROOT%\Cygwin"
 set "PATH=%SystemRoot%\system32;%SystemRoot%;%CYGWIN_ROOT%\bin;%ADB_PATH%"
 
 :: https://stackoverflow.com/questions/2541767/what-is-the-proper-way-to-test-if-a-parameter-is-empty-in-a-batch-file
-IF "%1~" == "-d" set "DRY_RUN_MODE=yes"
-IF "%1~" == "--dry-run" set "DRY_RUN_MODE=yes"
-IF "%DRY_RUN_MODE%" == "" set "DRY_RUN_MODE=no"
+IF "%~1" == "-d" set "DRY_RUN_MODE=yes"
+IF "%~1" == "--dry-run" set "DRY_RUN_MODE=yes"
+IF NOT "%DRY_RUN_MODE%" == "yes" set "DRY_RUN_MODE=no"
+
+:: load customizations from separate file if exists
+if exist %INSTALL_ROOT%cygwin-portable-installer-config.cmd (
+  call %INSTALL_ROOT%cygwin-portable-installer-config.cmd
+)
 
 echo Creating Cygwin root [%CYGWIN_ROOT%]...
 if not exist "%CYGWIN_ROOT%" (
@@ -145,7 +157,12 @@ if "%PROXY_HOST%" == "" (
     echo url = Wscript.Arguments(0^)
     echo target = Wscript.Arguments(1^)
     echo WScript.Echo "Downloading '" ^& url ^& "' to '" ^& target ^& "'..."
-    echo Set req = CreateObject("WinHttp.WinHttpRequest.5.1"^)
+    echo On Error Resume Next
+    echo Set req = CreateObject("MSXML2.XMLHTTP.6.0"^)
+    echo On Error GoTo 0
+    echo If req Is Nothing Then
+    echo   Set req = CreateObject("WinHttp.WinHttpRequest.5.1"^)
+    echo End If
     echo%DOWNLOADER_PROXY%
     echo req.Open "GET", url, False
     echo req.Send
@@ -193,9 +210,9 @@ del "%DOWNLOADER%"
 
 :: Cygwin command line options: https://cygwin.com/faq/faq.html#faq.setup.cli
 if "%PROXY_HOST%" == "" (
-    set CYGWIN_PROXY=
+    set "CYGWIN_PROXY="
 ) else (
-    set CYGWIN_PROXY=--proxy "%PROXY_HOST%:%PROXY_PORT%"
+    set "CYGWIN_PROXY=--proxy ^"%PROXY_HOST%:%PROXY_PORT%^""
 )
 
 if "%INSTALL_APT_CYG%" == "yes" (
@@ -210,8 +227,31 @@ if "%INSTALL_IMPROVED_USER_SETTINGS%" == "yes" (
     set CYGWIN_PACKAGES=git,rsync,%CYGWIN_PACKAGES%
 )
 
+:: https://blogs.msdn.microsoft.com/david.wang/2006/03/27/howto-detect-process-bitness/
+if "%INSTALL_NODEJS%" == "yes" (
+    set CYGWIN_PACKAGES=unzip,%CYGWIN_PACKAGES%
+
+    if "%NODEJS_ARCH%" == "auto" (
+        if "%PROCESSOR_ARCHITECTURE%" == "x86" (
+            if defined PROCESSOR_ARCHITEW6432 (
+                set NODEJS_ARCH=64
+            ) else (
+                set NODEJS_ARCH=86
+            )
+        ) else (
+            set NODEJS_ARCH=64
+        )
+    ) else if "%NODEJS_ARCH%" == "32" (
+        set NODEJS_ARCH=86
+    )
+)
+
 if "%INSTALL_ANSIBLE%" == "yes" (
-    set CYGWIN_PACKAGES=git,openssh,python-jinja2,python-six,python-yaml,%CYGWIN_PACKAGES%
+    set CYGWIN_PACKAGES=git,openssh,python37,python37-jinja2,python37-six,python37-yaml,%CYGWIN_PACKAGES%
+)
+
+if "%INSTALL_AWS_CLI%" == "yes" (
+   set CYGWIN_PACKAGES=python37,%CYGWIN_PACKAGES%
 )
 
 :: if conemu install is selected we need to be able to extract 7z archives, otherwise we need to install mintty
@@ -250,6 +290,7 @@ set "Updater_cmd=%INSTALL_ROOT%\cygwin-updater.cmd"
 echo Creating updater [%Updater_cmd%]...
 (
     echo @echo off
+    echo.
     echo :: https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
     echo set "CYGWIN_ROOT=%%~dp0.\Cygwin"
     echo set "CYGWIN_PROXY=%CYGWIN_PROXY%"
@@ -328,6 +369,10 @@ echo Creating [%Init_sh%]...
     echo     read -p "If it is safe, press 'Enter' to continue... Otherwise close this terminal window!" variable1
     echo }
     echo.
+    echo if [[ ! -e /opt ]]; then
+    echo     mkdir /opt ^|^| handle_exception
+    echo fi
+    echo.
     echo # CREATE_ROOT_USER? '%CREATE_ROOT_USER%'
     echo if [[ "w%CREATE_ROOT_USER%" == "wyes" ]]; then
     echo     #
@@ -342,8 +387,10 @@ echo Creating [%Init_sh%]...
     echo         echo $USERNAME:unused:1001:$GID:$USER_SID:$HOME:/bin/bash ^>^> /etc/passwd
     echo     fi
     echo.
+    echo     cp -rn /etc/skel /home/$USERNAME
+    echo.
     echo     # already set in cygwin-environment.cmd:
-    echo     # export CYGWIN_ROOT=$(cygpath -w /^)
+    echo     # export CYGWIN_ROOT="$(cygpath -w /^)"
     echo.
     echo     #
     echo     # adjust Cygwin packages cache path
@@ -352,11 +399,15 @@ echo Creating [%Init_sh%]...
     echo     sed -i -E "s/.*\\\.pkg-cache/"$'\t'"${pkg_cache_dir//\\/\\\\}/" /etc/setup/setup.rc ^|^| handle_exception
     echo fi
     echo.
+    echo # Make python3 available as python if python2 is not installed
+    echo [[ -e /usr/bin/python3 ]] ^|^| /usr/sbin/update-alternatives --install /usr/bin/python3 python3 $^(/usr/bin/find /usr/bin -maxdepth 1 -name "python3.*" -print -quit^) 1
+    echo [[ -e /usr/bin/python  ]] ^|^| /usr/sbin/update-alternatives --install /usr/bin/python  python  $^(/usr/bin/find /usr/bin -maxdepth 1 -name "python3.*" -print -quit^) 1
+    echo.
     echo # PROXY_HOST? '%PROXY_HOST%'
     echo if ! [[ "w%PROXY_HOST%" == "w" ]]; then
     echo     if [[ "$HOSTNAME" == "%COMPUTERNAME%" ]]; then
-    echo         export http_proxy=http://%PROXY_HOST%:%PROXY_PORT%
-    echo         export https_proxy=$http_proxy
+    echo         export http_proxy="http://%PROXY_HOST%:%PROXY_PORT%"
+    echo         export https_proxy="$http_proxy"
     echo     fi
     echo fi
     echo.
@@ -386,12 +437,7 @@ echo Creating [%Init_sh%]...
     echo     #
     echo     # Installing Ansible if not yet installed
     echo     #
-    echo     if [[ ! -e /opt ]]; then mkdir /opt; fi
-    echo     export PYTHONHOME=/usr/ PYTHONPATH=/usr/lib/python2.7 # workaround for "ImportError: No module named site" when Python for Windows is installed too
-    echo     export PATH=$PATH:/opt/ansible/bin
-    echo     export PYTHONPATH=$PYTHONPATH:/opt/ansible/lib
-    echo.
-    echo     if ! hash ansible 2^>/dev/null; then
+    echo     if [[ ! -e /opt/ansible ]]; then
     echo         echo "*******************************************************************************"
     echo         echo "* Installing [Ansible - %ANSIBLE_GIT_BRANCH%]..."
     echo         echo "*******************************************************************************"
@@ -400,26 +446,19 @@ echo Creating [%Init_sh%]...
     echo     fi
     echo fi
     echo.
-    echo # INSTALL_NODEJS? '%INSTALL_NODEJS%'
-    echo if [[ "w%INSTALL_NODEJS%" == "wyes" ]]; then
+    echo # INSTALL_AWS_CLI? '%INSTALL_AWS_CLI%'
+    echo if [[ "w%INSTALL_AWS_CLI%" == "wyes" ]]; then
     echo     #
-    echo     # Installing NodeJS if not yet installed
+    echo     # Installing AWS CLI if not yet installed
     echo     #
-    echo     if [[ ! -x /opt/nodejs ]]; then
+    echo     if ! hash aws 2^>/dev/null; then
     echo         echo "*******************************************************************************"
-    echo         echo "* Installing [NodeJS]..."
+    echo         echo "* Installing [AWS CLI]..."
     echo         echo "*******************************************************************************"
-    echo.
-    echo         mkdir -p /opt/
-    echo         cd /opt/
-    echo         curl https://nodejs.org/dist/v10.16.3/node-v10.16.3-win-x64.zip -o nodejs.zip ^|^| handle_exception
-    echo.
-    echo         echo ""
-    echo         echo "Extracting NodeJS to '/opt/nodejs'..."
-    echo         unzip -q -d . nodejs.zip ^|^| handle_exception
-    echo         mv ./node-v10.16.3-win-x64 ./nodejs ^|^| handle_exception
-    echo         rm -rf nodejs.zip ^|^| handle_exception
-    echo         cd - ^|^| handle_exception
+    echo         export PYTHONHOME=/usr
+    echo         python3 -m ensurepip --default-pip
+    echo         pip3 install --upgrade pip
+    echo         pip3 install --upgrade awscli
     echo     fi
     echo fi
     echo.
@@ -443,10 +482,6 @@ echo Creating [%Init_sh%]...
     echo     #
     echo     # Installing bash-funk if not yet installed
     echo     #
-    echo     if [[ ! -e /opt ]]; then
-    echo          mkdir /opt ^|^| handle_exception
-    echo     fi
-    echo.
     echo     if [[ ! -e /opt/bash-funk/bash-funk.sh ]]; then
     echo         echo "*******************************************************************************"
     echo         echo "* Installing [bash-funk]..."
@@ -464,15 +499,42 @@ echo Creating [%Init_sh%]...
     echo     fi
     echo fi
     echo.
+    echo # INSTALL_NODEJS? '%INSTALL_NODEJS%'
+    echo if [[ "w%INSTALL_NODEJS%" == "wyes" ]]; then
+    echo     #
+    echo     # Installing NodeJS if not yet installed
+    echo     #
+    echo     if [[ ! -e /opt/nodejs/current ]]; then
+    echo         nodejs_ver=%NODEJS_VERSION%
+    echo         if [[ $nodejs_ver == latest* ]]; then
+    echo             nodejs_ver=$^(curl -s https://nodejs.org/dist/$nodejs_ver/ ^| grep -oP 'node-^(\K[v0-9.]+[0-9]^)' ^| head -n1^)
+    echo         fi
+    echo.
+    echo         node_js_root="/opt/nodejs/node-${nodejs_ver}-win-x%NODEJS_ARCH%"
+    echo         echo "*******************************************************************************"
+    echo         echo "* Installing [Node.js]..."
+    echo         echo "*******************************************************************************"
+    echo.
+    echo         curl https://nodejs.org/dist/${nodejs_ver}/node-${nodejs_ver}-win-x%NODEJS_ARCH%.zip -o nodejs.zip
+    echo         mkdir -p /opt/nodejs
+    echo         echo "Extracting Node.js $nodejs_ver to '$node_js_root'..."
+    echo         unzip -q -d /opt/nodejs/ nodejs.zip
+    echo.
+    echo         rm -f nodejs.zip
+    echo         rm -f /opt/nodejs/current
+    echo         ln -s $node_js_root /opt/nodejs/current
+    echo.
+    echo         chmod 755 /opt/nodejs/current/node.exe
+    echo         chmod 755 /opt/nodejs/current/npm
+    echo         chmod 755 /opt/nodejs/current/npx
+    echo     fi
+    echo fi
+    echo.
     echo # INSTALL_TESTSSL_SH? '%INSTALL_TESTSSL_SH%'
     echo if [[ "w%INSTALL_TESTSSL_SH%" == "wyes" ]]; then
     echo     #
     echo     # Installing testssl.sh if not yet installed
     echo     #
-    echo     if [[ ! -e /opt ]]; then
-    echo          mkdir /opt ^|^| handle_exception
-    echo     fi
-    echo.
     echo     if [[ ! -e /opt/testssl/testssl.sh ]]; then
     echo         echo "*******************************************************************************"
     echo         echo "* Installing [testssl.sh - %TESTSSL_GIT_BRANCH%]..."
@@ -481,7 +543,7 @@ echo Creating [%Init_sh%]...
     echo         if hash git ^&^>/dev/null; then
     echo             git clone https://github.com/drwetter/testssl.sh --branch %TESTSSL_GIT_BRANCH% --single-branch --depth 1 --shallow-submodules /opt/testssl ^|^| handle_exception
     echo         elif hash svn ^&^>/dev/null; then
-    echo             svn checkout https://github.com/drwetter/testssl.sh/branches/%TESTSSL_GIT_BRANCH% /opt/testssl ^|^| handle_exception
+    echo             svn checkout https://github.com/drwetter/testssl.sh/tags/%TESTSSL_GIT_BRANCH% /opt/testssl ^|^| handle_exception
     echo         else
     echo             mkdir /opt/testssl ^&^& \
     echo             cd /opt/testssl ^&^& \
@@ -490,7 +552,6 @@ echo Creating [%Init_sh%]...
     echo         chmod +x /opt/testssl/testssl.sh ^|^| handle_exception
     echo     fi
     echo fi
-
 ) >"%Init_sh%" || goto :fail
 
 "%CYGWIN_ROOT%\bin\dos2unix" "%Init_sh%" || goto :fail
@@ -502,6 +563,7 @@ echo Creating launcher [%Start_cmd%]...
     echo setlocal enabledelayedexpansion
     echo set "CWD=%%cd%%"
     echo set "CYGWIN_DRIVE=%%~d0"
+    echo.
     echo :: https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
     echo set "CYGWIN_ROOT=%%~dp0.\Cygwin"
     echo.
@@ -741,8 +803,14 @@ if "%INSTALL_CONEMU%" == "yes" (
     )> "%conemu_config%" || goto :fail
 )
 
-set "Bashrc_sh=%CYGWIN_ROOT%\home\%CYGWIN_USERNAME%\.bashrc"
+set "Bashrc_sh=%CYGWIN_ROOT%\home\%CYGWIN_USERNAME%\.per_computer_settings.sh"
+if NOT exist "%Bashrc_sh%" set "Bashrc_sh=%CYGWIN_ROOT%\home\%CYGWIN_USERNAME%\.bashrc"
 if NOT exist "%Bashrc_sh%" goto :afterbashrcinstallations
+
+find "export PYTHONHOME" "%Bashrc_sh%" >NUL || (
+    echo.
+    echo export PYTHONHOME=/usr
+) >>"%Bashrc_sh%" || goto :fail
 
 echo INSTALL_PAGEANT? '%INSTALL_PAGEANT%'
 if "%INSTALL_PAGEANT%" == "yes" (
@@ -770,17 +838,6 @@ if not "%PROXY_HOST%" == "" (
     ) >>"%Bashrc_sh%" || goto :fail
 )
 
-echo INSTALL_NODEJS? '%INSTALL_NODEJS%'
-if "%INSTALL_NODEJS%" == "yes" (
-    echo Adding NodeJS to PATH in [/home/%CYGWIN_USERNAME%/.bashrc]...
-    find "nodejs" "%Bashrc_sh%" >NUL || (
-        (
-            echo.
-            echo export PATH=$PATH:/opt/nodejs
-        ) >>"%Bashrc_sh%" || goto :fail
-    )
-)
-
 echo INSTALL_ANSIBLE? '%INSTALL_ANSIBLE%'
 if "%INSTALL_ANSIBLE%" == "yes" (
     echo Adding Ansible to PATH in [/home/%CYGWIN_USERNAME%/.bashrc]...
@@ -789,6 +846,21 @@ if "%INSTALL_ANSIBLE%" == "yes" (
             echo.
             echo export PYTHONPATH=$PYTHONPATH:/opt/ansible/lib
             echo export PATH=$PATH:/opt/ansible/bin
+        ) >>"%Bashrc_sh%" || goto :fail
+    )
+)
+
+echo INSTALL_NODEJS? '%INSTALL_NODEJS%'
+if "%INSTALL_NODEJS%" == "yes" (
+    echo Adding NodeJS to PATH in [/home/%CYGWIN_USERNAME%/.bashrc]...
+    find "NODEJS_HOME" "%Bashrc_sh%" >NUL || (
+        (
+            echo.
+            REM TODO
+            REM echo export NVM_DIR="/opt/nvm"
+            REM echo [ -s "$NVM_DIR/nvm.sh" ] ^&^& \. "$NVM_DIR/nvm.sh"  # This loads nvm
+            echo export NODEJS_HOME=/opt/nodejs/current
+            echo export PATH=$PATH:$NODEJS_HOME
         ) >>"%Bashrc_sh%" || goto :fail
     )
 )
