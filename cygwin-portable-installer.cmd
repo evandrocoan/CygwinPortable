@@ -310,6 +310,7 @@ echo Creating updater [%Updater_cmd%]...
     echo :: https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
     echo set "CYGWIN_ROOT=%%~dp0.\Cygwin"
     echo set "CYGWIN_PROXY=%CYGWIN_PROXY%"
+    echo if not exist "%%CYGWIN_ROOT%%\%CYGWIN_SETUP%" set "CYGWIN_ROOT=%%~dp0."
     echo.
     echo :: change the URL to the closest mirror https://cygwin.com/mirrors.html
     echo set CYGWIN_MIRROR=%CYGWIN_MIRROR%
@@ -571,6 +572,7 @@ echo Creating launcher [%Start_cmd%]...
     echo.
     echo :: https://stackoverflow.com/questions/3160058/how-to-get-the-path-of-a-batch-script-without-the-trailing-backslash-in-a-single
     echo set "CYGWIN_ROOT=%%~dp0.\Cygwin"
+    echo if not exist "%%CYGWIN_ROOT%%\%CYGWIN_SETUP%" set "CYGWIN_ROOT=%%~dp0."
     echo.
     echo for %%%%i in ^(adb.exe^) do ^(
     echo     set "ADB_PATH=%%%%~dp$PATH:i"
@@ -666,6 +668,7 @@ echo Creating launcher [%Start_Mintty%]...
     echo set "CWD=%%cd%%"
     echo set "CYGWIN_DRIVE=%%~d0"
     echo set "CYGWIN_ROOT=%%~dp0.\Cygwin"
+    echo if not exist "%%CYGWIN_ROOT%%\%CYGWIN_SETUP%" set "CYGWIN_ROOT=%%~dp0."
     echo.
     echo set "PATH=%%PATH%%;%%CYGWIN_ROOT%%\bin;"
     echo :: set "ALLUSERSPROFILE=%%CYGWIN_ROOT%%\.ProgramData"
