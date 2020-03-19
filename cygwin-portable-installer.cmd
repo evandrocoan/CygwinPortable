@@ -344,7 +344,7 @@ echo Creating updater [%Updater_cmd%]...
     echo echo ###########################################################
     echo.
     echo :typeitrightupdatesucceed
-    echo :: timeout /T 60
+    echo :: timeout /T 60 || goto :eof
     echo set /p "UserInputPath=Type 'out' to quit... "
     echo if not "%%UserInputPath%%" == "out" goto typeitrightupdatesucceed
     echo echo exit /0
@@ -359,7 +359,7 @@ echo Creating updater [%Updater_cmd%]...
     echo echo ###########################################################
     echo.
     echo :typeitrightupdatefailed
-    echo :: timeout /T 60
+    echo :: timeout /T 60 || goto :eof
     echo set /p "UserInputPath=Type 'out' to quit... "
     echo if not "%%UserInputPath%%" == "out" goto typeitrightupdatefailed
     echo exit /1
@@ -653,7 +653,7 @@ echo Creating launcher [%Start_cmd%]...
     echo goto :eof
     echo.
     echo :fail
-    echo :: timeout /T 60
+    echo :: timeout /T 60 || goto :eof
     echo set /p "UserInputPath=Type 'out' to quit... "
     echo if not "%%UserInputPath%%" == "out" goto fail
 ) >"%Start_cmd%" || goto :fail
@@ -722,7 +722,7 @@ echo Creating launcher [%Start_Mintty%]...
     echo goto :eof
     echo.
     echo :fail
-    echo :: timeout /T 60
+    echo :: timeout /T 60 || goto :eof
     echo set /p "UserInputPath=Type 'out' to quit... "
     echo if not "%%UserInputPath%%" == "out" goto fail
 ) >"%Start_Mintty%" || goto :fail
@@ -936,7 +936,7 @@ echo Use [%Start_cmd%] to launch Cygwin Portable.
 echo.
 
 :typeitrightinstallationend
-if "%ALWAYS_EXIT_MODE%" == "yes" timeout /T 60 && goto :exitwithouterror
+if "%ALWAYS_EXIT_MODE%" == "yes" timeout /T 60 && goto :exitwithouterror || goto :exitwithouterror
 
 set /p "UserInputPath=Type 'out' to quit... "
 if not "%UserInputPath%" == "out" goto typeitrightinstallationend
@@ -953,7 +953,7 @@ echo ###########################################################
 echo.
 
 :typeitrightinstallationfailed
-if "%ALWAYS_EXIT_MODE%" == "yes" timeout /T 60 && goto :exitwitherror
+if "%ALWAYS_EXIT_MODE%" == "yes" timeout /T 60 && goto :exitwitherror || goto :exitwitherror
 
 set /p "UserInputPath=Type 'out' to quit... "
 if not "%UserInputPath%" == "out" goto typeitrightinstallationfailed
