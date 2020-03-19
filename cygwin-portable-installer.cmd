@@ -153,6 +153,9 @@ IF NOT "%ALWAYS_EXIT_MODE%" == "yes" set "ALWAYS_EXIT_MODE=no"
 if exist %INSTALL_ROOT%\cygwin-portable-installer-config.cmd (
     call %INSTALL_ROOT%\cygwin-portable-installer-config.cmd
 )
+if exist %ACTUAL_ROOT%\cygwin-portable-installer-config.cmd (
+    call %ACTUAL_ROOT%\cygwin-portable-installer-config.cmd
+)
 
 echo Creating Cygwin root [%CYGWIN_ROOT%]...
 if not exist "%CYGWIN_ROOT%" (
